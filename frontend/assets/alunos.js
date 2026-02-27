@@ -24,8 +24,36 @@ async function calcularFrequencia(aluno_id) {
 window.editarAluno = function(id) { alert('Função editar aluno em desenvolvimento'); };
 window.excluirAluno = async function(id) {
     if (confirm('Excluir aluno?')) {
-        await fetch(`/api/alunos/${id}`, { method: 'DELETE' });
+        await fetch(`/api/alunos/${id}`, { method: 'DELETE', credentials: 'include' });
         carregarAlunos();
     }
 };
 carregarAlunos();
+
+// Cadastro de aluno
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('btnNovoAluno');
+    if (btn) {
+        btn.onclick = function() {
+            const nome = prompt('Nome do aluno:');
+            if (!nome) return;
+            const sala_id = prompt('ID da sala:');
+            if (!sala_id) return;
+            fetch('/api/alunos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ nome, sala_id })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Aluno cadastrado com sucesso!');
+                    carregarAlunos();
+                } else {
+                    alert(data.error || 'Erro ao cadastrar aluno');
+                }
+            });
+        };
+    }
+});
