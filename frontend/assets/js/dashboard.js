@@ -22,6 +22,27 @@ const salasTotal = document.getElementById('salas-total');
 
 usuarioNome.textContent = usuario?.nome || 'Usuario';
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizeItems(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.items)) {
+    return payload.items;
+  }
+
+  return [];
+}
+
 function showError(message) {
   showAlert(alertBox, message, 'error');
 }
@@ -122,10 +143,10 @@ function createSalaCard(sala) {
   article.innerHTML = `
     <div class="sala-card-header">
       <div>
-        <h3>${sala.nome}</h3>
-        <p>Turno: ${sala.turno}</p>
+        <h3>${escapeHtml(sala.nome)}</h3>
+        <p>Turno: ${escapeHtml(sala.turno)}</p>
       </div>
-      <span class="sala-badge">${sala.total_alunos} aluno(s)</span>
+      <span class="sala-badge">${Number(sala.total_alunos || 0)} aluno(s)</span>
     </div>
     <p class="sala-card-hint">Abra a sala para fazer a chamada e acompanhar o mês.</p>
     <span class="sala-card-cta">Abrir sala →</span>
@@ -160,7 +181,8 @@ function togglePanel(panelToToggle, otherPanel) {
 
 async function carregarSalas() {
   try {
-    const salas = await get('/salas');
+    const salasResponse = await get('/salas');
+    const salas = normalizeItems(salasResponse);
     salasGrid.innerHTML = '';
     salasTotal.textContent = String(salas.length);
 

@@ -24,8 +24,31 @@ const frequenciaAtual = new Map();
 const responsaveisCache = new Map();
 mesPesquisa.value = new Date().toISOString().slice(0, 7);
 
-if (!salaId) {
-  window.location.href = '/dashboard.html';
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizeItems(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.items)) {
+    return payload.items;
+  }
+
+  return [];
+}
+
+const hasSalaId = Boolean(salaId);
+
+if (!hasSalaId) {
+  window.location.replace('/dashboard.html');
 }
 
 salaTitulo.textContent = `Controle de Frequencia - ${salaNome}`;
@@ -52,12 +75,12 @@ function renderMonthlySummary(data) {
 
   mensalSummary.innerHTML = `
     <div class="mensal-summary-grid">
-      <div><strong>Relatório de:</strong> ${formatMonthLabel(data.mes)}</div>
-      <div><strong>Presenças:</strong> ${data.totais.presentes}</div>
-      <div><strong>Faltas:</strong> ${data.totais.faltas}</div>
-      <div><strong>Total de registros:</strong> ${data.totais.registros}</div>
+      <div><strong>Relatório de:</strong> ${escapeHtml(formatMonthLabel(data.mes))}</div>
+      <div><strong>Presenças:</strong> ${Number(data.totais.presentes || 0)}</div>
+      <div><strong>Faltas:</strong> ${Number(data.totais.faltas || 0)}</div>
+      <div><strong>Total de registros:</strong> ${Number(data.totais.registros || 0)}</div>
       <div><strong>Taxa média:</strong> ${taxa}%</div>
-      <div><strong>Sala:</strong> ${salaNome}</div>
+      <div><strong>Sala:</strong> ${escapeHtml(salaNome)}</div>
     </div>
   `;
 
@@ -69,12 +92,12 @@ function renderMonthlySummary(data) {
 
   const rows = data.alunos.map((item) => `
     <tr>
-      <td>${item.aluno_nome}</td>
-      <td>${salaNome}</td>
-      <td>${item.presentes}</td>
-      <td>${item.faltas}</td>
-      <td>${item.registros}</td>
-      <td><button type="button" data-aluno-id="${item.aluno_id}" data-aluno-nome="${item.aluno_nome}" class="btn-secondary btn-small ver-detalhe-btn">Ver detalhe</button></td>
+      <td>${escapeHtml(item.aluno_nome)}</td>
+      <td>${escapeHtml(salaNome)}</td>
+      <td>${Number(item.presentes || 0)}</td>
+      <td>${Number(item.faltas || 0)}</td>
+      <td>${Number(item.registros || 0)}</td>
+      <td><button type="button" data-aluno-id="${Number(item.aluno_id)}" data-aluno-nome="${escapeHtml(item.aluno_nome)}" class="btn-secondary btn-small ver-detalhe-btn">Ver detalhe</button></td>
     </tr>
   `).join('');
 
@@ -120,11 +143,11 @@ function renderAlunoDetalhe(data) {
 
   alunoDetalheSummary.innerHTML = `
     <div class="mensal-summary-grid">
-      <div><strong>Aluno:</strong> ${data.alunoNome}</div>
-      <div><strong>Relatório de:</strong> ${formatMonthLabel(data.mes)}</div>
-      <div><strong>Presenças:</strong> ${data.totais.presentes}</div>
-      <div><strong>Faltas:</strong> ${data.totais.faltas}</div>
-      <div><strong>Total de registros:</strong> ${data.totais.registros}</div>
+      <div><strong>Aluno:</strong> ${escapeHtml(data.alunoNome)}</div>
+      <div><strong>Relatório de:</strong> ${escapeHtml(formatMonthLabel(data.mes))}</div>
+      <div><strong>Presenças:</strong> ${Number(data.totais.presentes || 0)}</div>
+      <div><strong>Faltas:</strong> ${Number(data.totais.faltas || 0)}</div>
+      <div><strong>Total de registros:</strong> ${Number(data.totais.registros || 0)}</div>
       <div><strong>Taxa:</strong> ${taxa}%</div>
     </div>
   `;
@@ -136,7 +159,7 @@ function renderAlunoDetalhe(data) {
 
   const rows = data.dias.map((item) => `
     <tr>
-      <td>${item.data_aula}</td>
+      <td>${escapeHtml(item.data_aula)}</td>
       <td>${item.status === 'presente' ? 'Presente' : 'Falta'}</td>
     </tr>
   `).join('');
@@ -178,7 +201,7 @@ async function carregarResumoMensal() {
     const data = await get(`/frequencia/sala/${salaId}/mensal?mes=${mesPesquisa.value}`);
     renderMonthlySummary(data);
   } catch (error) {
-    mensalSummary.innerHTML = `<p class="responsavel-status responsavel-status-error">${error.message}</p>`;
+    mensalSummary.innerHTML = `<p class="responsavel-status responsavel-status-error">${escapeHtml(error.message)}</p>`;
     mensalAlunos.innerHTML = '';
     alunoDetalhePanel.classList.add('hidden');
   }
@@ -246,7 +269,7 @@ async function toggleResponsaveis(aluno, details, button) {
       details.appendChild(createResponsavelCard(responsavel));
     });
   } catch (error) {
-    details.innerHTML = `<p class="responsavel-status responsavel-status-error">${error.message}</p>`;
+    details.innerHTML = `<p class="responsavel-status responsavel-status-error">${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -258,7 +281,7 @@ function renderAluno(aluno, status = 'presente') {
 
   const info = document.createElement('div');
   info.className = 'aluno-info';
-  info.innerHTML = `<strong>${aluno.nome}</strong><small>ID: ${aluno.id}</small>`;
+  info.innerHTML = `<strong>${escapeHtml(aluno.nome)}</strong><small>ID: ${Number(aluno.id)}</small>`;
 
   const meta = document.createElement('div');
   meta.className = 'aluno-meta';
@@ -317,7 +340,8 @@ function renderAluno(aluno, status = 'presente') {
 
 async function carregarAlunos() {
   try {
-    const alunos = await get(`/salas/${salaId}/alunos`);
+    const alunosResponse = await get(`/salas/${salaId}/alunos`);
+    const alunos = normalizeItems(alunosResponse);
     const data = dataAula.value;
     let frequencias = [];
 
@@ -357,47 +381,49 @@ async function carregarAlunos() {
   }
 }
 
-salvarBtn.addEventListener('click', async () => {
-  const data = dataAula.value;
-  if (!data) {
-    showAlert('Selecione a data da aula.');
-    return;
-  }
+if (hasSalaId) {
+  salvarBtn.addEventListener('click', async () => {
+    const data = dataAula.value;
+    if (!data) {
+      showAlert('Selecione a data da aula.');
+      return;
+    }
 
-  const registros = Array.from(frequenciaAtual.entries()).map(([alunoId, status]) => ({
-    alunoId,
-    status,
-  }));
+    const registros = Array.from(frequenciaAtual.entries()).map(([alunoId, status]) => ({
+      alunoId,
+      status,
+    }));
 
-  try {
-    const dataResponse = await post('/frequencia', {
-      salaId: Number(salaId),
-      data,
-      registros,
-    });
-    showAlert(dataResponse.message, 'success');
-  } catch (error) {
-    showAlert(error.message);
-    return;
-  }
+    try {
+      const dataResponse = await post('/frequencia', {
+        salaId: Number(salaId),
+        data,
+        registros,
+      });
+      showAlert(dataResponse.message, 'success');
+    } catch (error) {
+      showAlert(error.message);
+      return;
+    }
 
-  try {
+    try {
+      await carregarAlunos();
+      await carregarResumoMensal();
+    } catch (error) {
+      console.error('Falha ao atualizar a tela apos salvar frequencia:', error);
+      showAlert('Frequencia salva, mas nao foi possivel atualizar a tela. Recarregue a pagina.', 'error');
+    }
+  });
+
+  dataAula.addEventListener('change', async () => {
     await carregarAlunos();
-    await carregarResumoMensal();
-  } catch (error) {
-    console.error('Falha ao atualizar a tela apos salvar frequencia:', error);
-    showAlert('Frequencia salva, mas nao foi possivel atualizar a tela. Recarregue a pagina.', 'error');
-  }
-});
+  });
 
-dataAula.addEventListener('change', async () => {
-  await carregarAlunos();
-});
+  voltarBtn.addEventListener('click', () => {
+    window.location.href = '/dashboard.html';
+  });
 
-voltarBtn.addEventListener('click', () => {
-  window.location.href = '/dashboard.html';
-});
-
-mesPesquisa.addEventListener('change', carregarResumoMensal);
-carregarAlunos();
-carregarResumoMensal();
+  mesPesquisa.addEventListener('change', carregarResumoMensal);
+  carregarAlunos();
+  carregarResumoMensal();
+}

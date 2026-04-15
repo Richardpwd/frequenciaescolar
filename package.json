@@ -6,8 +6,9 @@
   "scripts": {
     "server": "node backend/server.js",
     "start": "node backend/server.js",
+    "dev": "node scripts/dev.js",
     "dev:server": "node --watch backend/server.js",
-    "dev": "vite",
+    "dev:frontend": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
