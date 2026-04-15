@@ -224,6 +224,87 @@ router.get('/sala/:salaId/mensal', async (req, res) => {
   }
 });
 
+async function handleAlunoMensal(req, res) {
+  try {
+    const alunoId = parsePositiveInt(req.params.alunoId);
+    const salaIdParam = req.params.salaId ? parsePositiveInt(req.params.salaId) : null;
+    const mes = String(req.query.mes || '').trim();
+
+    if (!alunoId) {
+      return res.status(400).json({ message: 'Aluno invalido.' });
+    }
+
+    if (salaIdParam === null && req.params.salaId !== undefined && req.params.salaId !== '') {
+      return res.status(400).json({ message: 'Sala invalida.' });
+    }
+
+    if (!/^[0-9]{4}-[0-9]{2}$/.test(mes)) {
+      return res.status(400).json({ message: 'Mês invalido. Use o formato YYYY-MM.' });
+    }
+
+    const [alunoRows] = await pool.query(
+      `SELECT a.id AS aluno_id,
+              a.nome AS aluno_nome,
+              a.sala_id,
+              s.nome AS sala_nome
+       FROM alunos a
+       JOIN salas s ON s.id = a.sala_id
+       WHERE a.id = ?
+       LIMIT 1`,
+      [alunoId],
+    );
+
+    if (alunoRows.length === 0) {
+      return res.status(404).json({ message: 'Aluno nao encontrado.' });
+    }
+
+    const aluno = alunoRows[0];
+    if (salaIdParam && aluno.sala_id !== salaIdParam) {
+      return res.status(400).json({ message: 'Aluno nao pertence a esta sala.' });
+    }
+
+    const inicio = `${mes}-01`;
+    const [year, month] = mes.split('-').map(Number);
+    const lastDay = new Date(year, month, 0).toISOString().slice(0, 10);
+
+    const [dias] = await pool.query(
+      `SELECT data_aula, status
+       FROM frequencias
+       WHERE aluno_id = ?
+         AND sala_id = ?
+         AND data_aula BETWEEN ? AND ?
+       ORDER BY data_aula`,
+      [alunoId, aluno.sala_id, inicio, lastDay],
+    );
+
+    const totais = dias.reduce(
+      (acc, registro) => {
+        if (registro.status === 'presente') acc.presentes += 1;
+        if (registro.status === 'falta') acc.faltas += 1;
+        acc.registros += 1;
+        return acc;
+      },
+      { presentes: 0, faltas: 0, registros: 0 },
+    );
+
+    return res.json({
+      alunoId,
+      alunoNome: aluno.aluno_nome,
+      salaId: aluno.sala_id,
+      salaNome: aluno.sala_nome,
+      mes,
+      totais,
+      dias,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erro ao consultar frequencia individual mensal.' });
+  }
+}
+
+router.get('/aluno/:alunoId/mensal', handleAlunoMensal);
+router.get('/sala/:salaId/aluno/:alunoId/mensal', handleAlunoMensal);
+
 router.post('/', async (req, res) => {
   let connection;
   let transactionStarted = false;

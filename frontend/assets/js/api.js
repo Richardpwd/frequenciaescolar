@@ -1,4 +1,6 @@
-const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000/api' : '/api';
+const API_BASE = window.location.protocol === 'file:'
+  ? 'http://localhost:3000/api'
+  : `${window.location.origin}/api`;
 let refreshPromise = null;
 
 function clearSessionAndRedirect() {
@@ -28,6 +30,10 @@ async function parseResponse(response) {
   if (!response.ok) {
     if (isJson && data?.message) {
       throw new Error(data.message);
+    }
+
+    if (isJson && typeof data === 'object' && Object.keys(data).length > 0) {
+      throw new Error(`Erro HTTP ${response.status}: ${JSON.stringify(data)}`);
     }
 
     if (typeof data === 'string' && data.trim()) {

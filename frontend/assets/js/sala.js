@@ -19,6 +19,9 @@ const mensalAlunos = document.getElementById('mensal-alunos');
 const salvarBtn = document.getElementById('salvar-btn');
 const voltarBtn = document.getElementById('voltar-btn');
 const alertBox = document.getElementById('alert-box');
+const alunoDetalhePanel = document.getElementById('aluno-detalhe-panel');
+const alunoDetalheSummary = document.getElementById('aluno-detalhe-summary');
+const alunoDetalheList = document.getElementById('aluno-detalhe-list');
 
 const frequenciaAtual = new Map();
 const responsaveisCache = new Map();
@@ -64,29 +67,108 @@ function renderMonthlySummary(data) {
 
   if (!Array.isArray(data.alunos) || data.alunos.length === 0) {
     mensalAlunos.innerHTML = '<div class="mensal-row"><span>Nenhum registro mensal encontrado.</span></div>';
+    alunoDetalhePanel.classList.add('hidden');
     return;
   }
 
   const rows = data.alunos.map((item) => `
-    <div class="mensal-row">
-      <span>${item.aluno_nome}</span>
-      <span>${salaNome}</span>
-      <span>${item.presentes}</span>
-      <span>${item.faltas}</span>
-      <span>${item.registros}</span>
-    </div>
+    <tr>
+      <td>${item.aluno_nome}</td>
+      <td>${salaNome}</td>
+      <td>${item.presentes}</td>
+      <td>${item.faltas}</td>
+      <td>${item.registros}</td>
+      <td><button type="button" data-aluno-id="${item.aluno_id}" data-aluno-nome="${item.aluno_nome}" class="btn-secondary btn-small ver-detalhe-btn">Ver detalhe</button></td>
+    </tr>
   `).join('');
 
   mensalAlunos.innerHTML = `
-    <div class="mensal-row heading">
-      <span>Aluno</span>
-      <span>Sala</span>
-      <span>Pres.</span>
-      <span>Faltas</span>
-      <span>Reg.</span>
+    <div class="table-scroll">
+      <table class="mensal-table">
+        <thead>
+          <tr>
+            <th>Aluno</th>
+            <th>Sala</th>
+            <th>Pres.</th>
+            <th>Faltas</th>
+            <th>Reg.</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
     </div>
-    ${rows}
   `;
+
+  const detalheButtons = mensalAlunos.querySelectorAll('.ver-detalhe-btn');
+  detalheButtons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      const alunoId = button.dataset.alunoId;
+      try {
+        await carregarDetalheAluno(alunoId);
+      } catch (error) {
+        showAlert(error.message);
+      }
+    });
+  });
+}
+
+function renderAlunoDetalhe(data) {
+  alunoDetalhePanel.classList.remove('hidden');
+
+  const taxa = data.totais.registros
+    ? Math.round((data.totais.presentes / data.totais.registros) * 100)
+    : 0;
+
+  alunoDetalheSummary.innerHTML = `
+    <div class="mensal-summary-grid">
+      <div><strong>Aluno:</strong> ${data.alunoNome}</div>
+      <div><strong>Relatório de:</strong> ${formatMonthLabel(data.mes)}</div>
+      <div><strong>Presenças:</strong> ${data.totais.presentes}</div>
+      <div><strong>Faltas:</strong> ${data.totais.faltas}</div>
+      <div><strong>Total de registros:</strong> ${data.totais.registros}</div>
+      <div><strong>Taxa:</strong> ${taxa}%</div>
+    </div>
+  `;
+
+  if (!Array.isArray(data.dias) || data.dias.length === 0) {
+    alunoDetalheList.innerHTML = '<div class="mensal-row"><span>Nenhum registro de frequencia encontrado para este aluno neste mês.</span></div>';
+    return;
+  }
+
+  const rows = data.dias.map((item) => `
+    <tr>
+      <td>${item.data_aula}</td>
+      <td>${item.status === 'presente' ? 'Presente' : 'Falta'}</td>
+    </tr>
+  `).join('');
+
+  alunoDetalheList.innerHTML = `
+    <div class="table-scroll">
+      <table class="mensal-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function carregarDetalheAluno(alunoId) {
+  if (!mesPesquisa?.value) {
+    throw new Error('Selecione um mês antes de ver o detalhe do aluno.');
+  }
+
+  const data = await get(`/frequencia/aluno/${alunoId}/mensal?mes=${mesPesquisa.value}`);
+  renderAlunoDetalhe(data);
 }
 
 async function carregarResumoMensal() {
@@ -102,6 +184,7 @@ async function carregarResumoMensal() {
   } catch (error) {
     mensalSummary.innerHTML = `<p class="responsavel-status responsavel-status-error">${error.message}</p>`;
     mensalAlunos.innerHTML = '';
+    alunoDetalhePanel.classList.add('hidden');
   }
 }
 
@@ -246,7 +329,7 @@ async function carregarAlunos() {
       try {
         const result = await get(`/frequencia/sala/${salaId}/data/${data}`);
         frequencias = Array.isArray(result.registros) ? result.registros : [];
-      } catch (error) {
+      } catch {
         // Se não existirem registros para a data, seguiremos com defaults.
         frequencias = [];
       }
@@ -290,10 +373,17 @@ salvarBtn.addEventListener('click', async () => {
       registros,
     });
     showAlert(dataResponse.message, 'success');
+  } catch (error) {
+    showAlert(error.message);
+    return;
+  }
+
+  try {
     await carregarAlunos();
     await carregarResumoMensal();
   } catch (error) {
-    showAlert(error.message);
+    console.error('Falha ao atualizar a tela apos salvar frequencia:', error);
+    showAlert('Frequencia salva, mas nao foi possivel atualizar a tela. Recarregue a pagina.', 'error');
   }
 });
 

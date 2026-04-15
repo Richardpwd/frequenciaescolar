@@ -29,10 +29,15 @@ const __dirname = path.dirname(__filename);
 
 app.set('trust proxy', 1);
 
-const allowedOrigins = [FRONTEND_ORIGIN];
+const allowedOrigins = new Set([FRONTEND_ORIGIN]);
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.add('http://localhost:5173');
+  allowedOrigins.add('http://127.0.0.1:5173');
+  allowedOrigins.add('http://127.0.0.1:3000');
+}
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.has(origin)) {
       return callback(null, true);
     }
     return callback(new Error('CORS policy does not allow this origin.'));
@@ -199,6 +204,10 @@ app.get('/api/docs', (_req, res) => {
       {
         method: 'GET',
         path: '/api/frequencia/sala/:salaId/historico?inicio=YYYY-MM-DD&fim=YYYY-MM-DD',
+      },
+      {
+        method: 'GET',
+        path: '/api/frequencia/aluno/:alunoId/mensal?mes=YYYY-MM',
       },
     ],
   });

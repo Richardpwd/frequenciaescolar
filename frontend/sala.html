@@ -36,7 +36,13 @@
     </section>
 
     <section class="card responsavel-panel">
-      <div class="form-grid">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Relatório mensal</p>
+          <h2>Resumo da frequência da sala por mês</h2>
+        </div>
+      </div>
+      <div class="form-grid compact-grid">
         <div class="form-group">
           <label for="mes-pesquisa">Mês do relatório</label>
           <input id="mes-pesquisa" type="month" />
@@ -44,6 +50,17 @@
       </div>
       <div id="mensal-summary" class="mensal-summary"></div>
       <div id="mensal-alunos" class="mensal-matrix"></div>
+    </section>
+
+    <section id="aluno-detalhe-panel" class="card responsavel-panel hidden">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Detalhes do aluno</p>
+          <h2>Frequência individual mensal</h2>
+        </div>
+      </div>
+      <div id="aluno-detalhe-summary" class="mensal-summary"></div>
+      <div id="aluno-detalhe-list" class="mensal-matrix"></div>
     </section>
 
     <section id="alunos-list" class="alunos-list"></section>
