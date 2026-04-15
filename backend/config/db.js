@@ -8,8 +8,14 @@ const dbUser = process.env.DB_USER || 'root';
 const dbPassword = process.env.DB_PASSWORD || '';
 const dbPort = Number(process.env.DB_PORT || 3306);
 const dbName = process.env.DB_NAME || 'avance_frequencia';
-const useInMemoryDb = process.env.USE_IN_MEMORY_DB === 'true'
-  || (process.env.VERCEL === '1' && ['localhost', '127.0.0.1'].includes(String(dbHost).toLowerCase()));
+const isPublishedEnvironment = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+const useInMemoryDb = process.env.USE_IN_MEMORY_DB === 'true' && !isPublishedEnvironment;
+
+if (process.env.USE_IN_MEMORY_DB === 'true' && isPublishedEnvironment) {
+  console.warn('[DB] USE_IN_MEMORY_DB foi ignorado em produção para evitar perda de dados.');
+}
+
+export const dbMode = useInMemoryDb ? 'memory' : 'mysql';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -592,6 +598,10 @@ export async function initializeDatabase(retries = 3, delayMs = 2000) {
   if (useInMemoryDb) {
     console.log('[DB] Ambiente iniciado com armazenamento em memoria.');
     return;
+  }
+
+  if (isPublishedEnvironment && ['localhost', '127.0.0.1'].includes(String(dbHost).toLowerCase())) {
+    throw new Error('Banco de dados persistente não configurado. Defina DB_HOST, DB_USER, DB_PASSWORD e DB_NAME no ambiente publicado.');
   }
 
   for (let attempt = 1; attempt <= retries; attempt++) {

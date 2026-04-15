@@ -7,7 +7,7 @@ import http from 'node:http';
 import process from 'node:process';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initializeDatabase, testConnection } from './config/db.js';
+import { dbMode, initializeDatabase, testConnection } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import salasRoutes from './routes/salas.routes.js';
 import frequenciaRoutes from './routes/frequencia.routes.js';
@@ -284,7 +284,7 @@ app.get('/api/docs', (_req, res) => {
 app.get('/health', async (_req, res) => {
   try {
     await testConnection();
-    res.json({ status: 'ok', db: 'connected' });
+    res.json({ status: 'ok', db: dbMode });
   } catch (err) {
     res.status(503).json({ status: 'error', db: 'disconnected', detail: err.message });
   }
