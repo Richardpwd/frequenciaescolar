@@ -3,11 +3,22 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const dbHost = process.env.DB_HOST || 'localhost';
-const dbUser = process.env.DB_USER || 'root';
-const dbPassword = process.env.DB_PASSWORD || '';
-const dbPort = Number(process.env.DB_PORT || 3306);
-const dbName = process.env.DB_NAME || 'avance_frequencia';
+const databaseUrl = String(process.env.DATABASE_URL || '').trim();
+let parsedDatabaseUrl = null;
+
+if (databaseUrl) {
+  try {
+    parsedDatabaseUrl = new URL(databaseUrl);
+  } catch (error) {
+    console.warn('[DB] DATABASE_URL inválida:', error.message);
+  }
+}
+
+const dbHost = parsedDatabaseUrl?.hostname || process.env.DB_HOST || 'localhost';
+const dbUser = decodeURIComponent(parsedDatabaseUrl?.username || process.env.DB_USER || 'root');
+const dbPassword = decodeURIComponent(parsedDatabaseUrl?.password || process.env.DB_PASSWORD || '');
+const dbPort = Number(parsedDatabaseUrl?.port || process.env.DB_PORT || 3306);
+const dbName = String(parsedDatabaseUrl?.pathname || '').replace(/^\/+/, '') || process.env.DB_NAME || 'avance_frequencia';
 const isPublishedEnvironment = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
 const useInMemoryDb = process.env.USE_IN_MEMORY_DB === 'true' && !isPublishedEnvironment;
 
@@ -41,33 +52,16 @@ function sortByName(items, field = 'nome') {
 function buildInitialMemoryState() {
   return {
     usuarios: [],
-    salas: [
-      { id: 1, nome: 'Sala 1 - Fundamental', turno: 'Manha', criado_em: nowIso() },
-      { id: 2, nome: 'Sala 2 - Reforco Matematica', turno: 'Tarde', criado_em: nowIso() },
-      { id: 3, nome: 'Sala 3 - Linguagens', turno: 'Noite', criado_em: nowIso() },
-    ],
-    alunos: [
-      { id: 1, nome: 'Ana Clara', sala_id: 1, criado_em: nowIso() },
-      { id: 2, nome: 'Bruno Silva', sala_id: 1, criado_em: nowIso() },
-      { id: 3, nome: 'Carlos Henrique', sala_id: 1, criado_em: nowIso() },
-      { id: 4, nome: 'Daniela Souza', sala_id: 2, criado_em: nowIso() },
-      { id: 5, nome: 'Eduardo Lima', sala_id: 2, criado_em: nowIso() },
-      { id: 6, nome: 'Fernanda Rocha', sala_id: 2, criado_em: nowIso() },
-      { id: 7, nome: 'Gabriel Martins', sala_id: 3, criado_em: nowIso() },
-      { id: 8, nome: 'Helena Costa', sala_id: 3, criado_em: nowIso() },
-      { id: 9, nome: 'Igor Nascimento', sala_id: 3, criado_em: nowIso() },
-    ],
-    responsaveis: [
-      { id: 1, nome: 'Marina Clara', email: 'marina.ana@example.com', telefone: '(11) 99999-1111', aluno_id: 1, criado_em: nowIso() },
-      { id: 2, nome: 'Paulo Silva', email: 'paulo.bruno@example.com', telefone: '(11) 99999-2222', aluno_id: 2, criado_em: nowIso() },
-    ],
+    salas: [],
+    alunos: [],
+    responsaveis: [],
     frequencias: [],
     refresh_tokens: [],
     counters: {
       usuario: 0,
-      sala: 3,
-      aluno: 9,
-      responsavel: 2,
+      sala: 0,
+      aluno: 0,
+      responsavel: 0,
       frequencia: 0,
       refreshToken: 0,
     },

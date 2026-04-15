@@ -1,5 +1,4 @@
-CREATE DATABASE IF NOT EXISTS avance_frequencia;
-USE avance_frequencia;
+-- O banco ativo é selecionado dinamicamente pelo ambiente e pelo backend.
 
 CREATE TABLE IF NOT EXISTS usuarios (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -58,20 +57,5 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   CONSTRAINT uq_refresh_usuario UNIQUE (usuario_id)
 );
 
-INSERT IGNORE INTO salas (id, nome, turno)
-VALUES
-  (1, 'Sala 1 - Fundamental', 'Manha'),
-  (2, 'Sala 2 - Reforco Matematica', 'Tarde'),
-  (3, 'Sala 3 - Linguagens', 'Noite');
-
-INSERT IGNORE INTO alunos (id, nome, sala_id)
-VALUES
-  (1, 'Ana Clara', 1),
-  (2, 'Bruno Silva', 1),
-  (3, 'Carlos Henrique', 1),
-  (4, 'Daniela Souza', 2),
-  (5, 'Eduardo Lima', 2),
-  (6, 'Fernanda Rocha', 2),
-  (7, 'Gabriel Martins', 3),
-  (8, 'Helena Costa', 3),
-  (9, 'Igor Nascimento', 3);
+-- Estrutura mantida sem dados iniciais.
+-- As tabelas passam a iniciar vazias por padrão.

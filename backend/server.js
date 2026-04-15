@@ -139,6 +139,20 @@ app.use('/api', (req, res, next) => {
   return next();
 });
 
+app.use(async (req, res, next) => {
+  if (!(req.path === '/health' || req.path.startsWith('/api'))) {
+    return next();
+  }
+
+  try {
+    await ensureDatabaseReady();
+    return next();
+  } catch (error) {
+    console.error('Falha ao preparar banco de dados:', error.message);
+    return res.status(503).json({ message: 'Banco de dados indisponivel no momento.' });
+  }
+});
+
 app.get('/favicon.ico', (_req, res) => {
   res.sendFile(path.join(__dirname, '../public/favicon.ico'));
 });
