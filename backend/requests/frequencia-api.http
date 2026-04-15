@@ -1,0 +1,96 @@
+@baseUrl = http://localhost:3000
+@apiUrl = {{baseUrl}}/api
+@token = COLE_O_TOKEN_AQUI
+@refreshToken = COLE_O_REFRESH_TOKEN_AQUI
+
+### Health
+GET {{baseUrl}}/health
+
+### Descoberta da API
+GET {{apiUrl}}
+
+### Registrar usuario
+POST {{apiUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "nome": "Usuario Teste",
+  "usuario": "teste_api",
+  "senha": "123456"
+}
+
+### Login (copie o token da resposta para a variavel @token)
+POST {{apiUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "usuario": "admin",
+  "senha": "admin123"
+}
+
+### Refresh de sessao
+POST {{apiUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Listar salas (protegido)
+GET {{apiUrl}}/salas
+Authorization: Bearer {{token}}
+
+### Listar alunos da sala 1 (protegido)
+GET {{apiUrl}}/salas/1/alunos
+Authorization: Bearer {{token}}
+
+### Salvar frequencia da sala 1 (protegido)
+POST {{apiUrl}}/frequencia
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "salaId": 1,
+  "data": "2026-03-21",
+  "registros": [
+    { "alunoId": 1, "status": "presente" },
+    { "alunoId": 2, "status": "falta" },
+    { "alunoId": 3, "status": "presente" }
+  ]
+}
+
+### Consultar frequencia da sala 1 em uma data (protegido)
+GET {{apiUrl}}/frequencia/sala/1/data/2026-03-21
+Authorization: Bearer {{token}}
+
+### Historico da sala 1 (protegido)
+GET {{apiUrl}}/frequencia/sala/1/historico?inicio=2026-03-01&fim=2026-03-31
+Authorization: Bearer {{token}}
+
+### Listar alunos para cadastro de responsavel (protegido)
+GET {{apiUrl}}/responsaveis/alunos
+Authorization: Bearer {{token}}
+
+### Cadastrar responsavel (protegido)
+POST {{apiUrl}}/responsaveis
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nomeResponsavel": "Maria Oliveira",
+  "email": "maria.oliveira@example.com",
+  "nomeAluno": "Ana Clara",
+  "telefone": "(11)99999-9999"
+}
+
+### Listar responsaveis de um aluno (protegido)
+GET {{apiUrl}}/responsaveis/aluno/1
+Authorization: Bearer {{token}}
+
+### Logout
+POST {{apiUrl}}/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}

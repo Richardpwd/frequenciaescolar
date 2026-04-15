@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avance | Recuperar Senha</title>
+  <link rel="icon" href="/logo.jpeg" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <main class="auth-layout">
+    <section class="card auth-card">
+      <div class="logo">
+        <img src="/logo.jpeg" alt="Logo Avance" class="logo-image" />
+        <div>
+          <span class="logo-name">Avance</span>
+          <small class="logo-tagline">Educacao acompanhada de perto</small>
+        </div>
+      </div>
+      <h1 class="auth-title">Recuperar Senha</h1>
+      <p class="auth-subtitle">Informe seu usuario para solicitar recuperacao.</p>
+
+      <form id="forgot-form">
+        <div class="form-group">
+          <label for="usuario">Usuario</label>
+          <input id="usuario" type="text" required />
+        </div>
+
+        <button type="submit" class="btn-primary">Enviar solicitacao</button>
+      </form>
+
+      <div id="alert-box" class="alert"></div>
+      <div class="link-row">
+        <a href="/login.html">voltar ao login</a>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/forgot.js"></script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000/api' : '/api';
+let refreshPromise = null;
+
+function clearSessionAndRedirect() {
+  sessionStorage.removeItem('avanceUsuario');
+  sessionStorage.removeItem('avanceToken');
+  sessionStorage.removeItem('avanceRefreshToken');
+  window.location.href = '/login.html';
+}
+
+function buildHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = sessionStorage.getItem('avanceToken');
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
+async function parseResponse(response) {
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+  const isJson = contentType.includes('application/json');
+
+  const data = isJson ? await response.json().catch(() => ({})) : await response.text().catch(() => '');
+
+  if (!response.ok) {
+    if (isJson && data?.message) {
+      throw new Error(data.message);
+    }
+
+    if (typeof data === 'string' && data.trim()) {
+      throw new Error(`Erro HTTP ${response.status}: ${data.trim()}`);
+    }
+
+    throw new Error(`Erro na requisicao (HTTP ${response.status}).`);
+  }
+
+  return data;
+}
+
+async function refreshAccessToken() {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  const refreshToken = sessionStorage.getItem('avanceRefreshToken');
+  if (!refreshToken) {
+    throw new Error('Sessao expirada. Faca login novamente.');
+  }
+
+  refreshPromise = (async () => {
+    let response;
+
+    try {
+      response = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+    } catch {
+      throw new Error('Nao foi possivel conectar ao servidor para renovar a sessao.');
+    }
+
+    if (!response.ok) {
+      throw new Error('Nao foi possivel renovar a sessao.');
+    }
+
+    const data = await response.json();
+    sessionStorage.setItem('avanceToken', data.token);
+    sessionStorage.setItem('avanceRefreshToken', data.refreshToken);
+
+    if (data.usuario) {
+      sessionStorage.setItem('avanceUsuario', JSON.stringify(data.usuario));
+    }
+  })();
+
+  try {
+    await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
+
+async function request(path, options = {}, shouldRetry = true) {
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        ...buildHeaders(),
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    throw new Error('Nao foi possivel conectar ao servidor. Verifique se a API esta ativa.');
+  }
+
+  if (response.status === 401 && !String(path).startsWith('/auth') && shouldRetry) {
+    try {
+      await refreshAccessToken();
+      return request(path, options, false);
+    } catch {
+      clearSessionAndRedirect();
+      throw new Error('Sessao expirada. Faca login novamente.');
+    }
+  }
+
+  return parseResponse(response);
+}
+
+export async function post(path, payload) {
+  return request(path, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function get(path) {
+  return request(path, {
+    method: 'GET',
+  });
+}
+

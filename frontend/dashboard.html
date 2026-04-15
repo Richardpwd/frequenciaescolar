@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avance | Salas</title>
+  <link rel="icon" href="/logo.jpeg" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="logo">
+          <img src="/logo.jpeg" alt="Logo Avance" class="logo-image" />
+          <div>
+            <span class="logo-name">Avance</span>
+            <small class="logo-tagline">Acompanhamento escolar com presenca e familia conectados</small>
+          </div>
+        </div>
+        <h1>Painel das salas</h1>
+        <small>Bem-vindo, <strong id="usuario-nome"></strong></small>
+      </div>
+      <div class="topbar-actions">
+        <button id="toggle-sala-btn" class="btn-primary">Nova sala</button>
+        <button id="toggle-aluno-btn" class="btn-primary">Novo aluno</button>
+        <button id="logout-btn" class="btn-secondary">Sair</button>
+      </div>
+    </header>
+
+    <div id="alert-box" class="alert"></div>
+
+    <section class="hero-panel card">
+      <div>
+        <p class="eyebrow">Visao geral</p>
+        <h2>Organize frequencia, turmas e alunos em um so lugar.</h2>
+        <p class="hero-copy">Cadastre salas e alunos para liberar a chamada com poucos cliques.</p>
+      </div>
+      <div class="hero-stats">
+        <article class="stat-card">
+          <span class="stat-label">Salas ativas</span>
+          <strong id="salas-total">0</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Acesso</span>
+          <strong>Rapido</strong>
+          <small>Entrada direta nas turmas</small>
+        </article>
+      </div>
+    </section>
+
+    <section id="aluno-panel" class="card responsavel-panel hidden">
+      <h2>Cadastrar aluno</h2>
+      <p class="auth-subtitle">Informe os dados do aluno e, se quiser, cadastre os responsaveis no mesmo formulario.</p>
+
+      <form id="aluno-form" class="form-grid">
+        <div class="form-group">
+          <label for="nome-aluno">Nome do aluno</label>
+          <input id="nome-aluno" type="text" maxlength="120" required />
+        </div>
+
+        <div class="form-group">
+          <label for="sala-aluno">Sala</label>
+          <select id="sala-aluno" required>
+            <option value="">Selecione</option>
+          </select>
+        </div>
+
+        <div class="form-group form-group-full checkbox-row">
+          <label for="add-responsaveis-toggle" class="checkbox-label">
+            <input id="add-responsaveis-toggle" type="checkbox" />
+            Adicionar responsaveis agora
+          </label>
+        </div>
+
+        <div id="responsaveis-aluno-wrapper" class="form-group form-group-full hidden">
+          <div id="responsaveis-aluno-list" class="responsaveis-inline-list"></div>
+          <button id="add-responsavel-btn" type="button" class="btn-secondary">Adicionar outro responsavel</button>
+        </div>
+
+        <button type="submit" class="btn-primary">Salvar aluno</button>
+      </form>
+    </section>
+
+    <section id="sala-panel" class="card responsavel-panel hidden">
+      <h2>Cadastrar sala</h2>
+      <p class="auth-subtitle">Informe os dados para disponibilizar uma nova turma no painel.</p>
+
+      <form id="sala-form" class="form-grid">
+        <div class="form-group">
+          <label for="nome-sala">Nome da sala</label>
+          <input id="nome-sala" type="text" maxlength="80" required />
+        </div>
+
+        <div class="form-group">
+          <label for="turno-sala">Turno</label>
+          <select id="turno-sala" required>
+            <option value="">Selecione</option>
+            <option value="Manha">Manha</option>
+            <option value="Tarde">Tarde</option>
+            <option value="Noite">Noite</option>
+            <option value="Integral">Integral</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-primary">Salvar sala</button>
+      </form>
+    </section>
+
+    <section id="salas-grid" class="cards-grid"></section>
+  </main>
+
+  <script type="module" src="/assets/js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avance | Frequencia da Sala</title>
+  <link rel="icon" href="/logo.jpeg" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="logo">
+          <img src="/logo.jpeg" alt="Logo Avance" class="logo-image" />
+          <div>
+            <span class="logo-name">Avance</span>
+            <small class="logo-tagline">Controle diario de frequencia e contato com a familia</small>
+          </div>
+        </div>
+        <h1 id="sala-titulo">Controle de Frequencia</h1>
+      </div>
+      <div class="date-field">
+        <label for="data-aula">Data da aula</label>
+        <input id="data-aula" type="date" />
+      </div>
+    </header>
+
+    <div id="alert-box" class="alert"></div>
+
+    <section class="card room-intro">
+      <div>
+        <p class="eyebrow">Chamada da turma</p>
+        <h2>Marque presenca e abra os pais de cada aluno quando precisar de contato imediato.</h2>
+      </div>
+    </section>
+
+    <section class="card responsavel-panel">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="mes-pesquisa">Mês do relatório</label>
+          <input id="mes-pesquisa" type="month" />
+        </div>
+      </div>
+      <div id="mensal-summary" class="mensal-summary"></div>
+      <div id="mensal-alunos" class="mensal-matrix"></div>
+    </section>
+
+    <section id="alunos-list" class="alunos-list"></section>
+
+    <footer class="footer-actions">
+      <button id="voltar-btn" class="btn-secondary">Voltar</button>
+      <button id="salvar-btn" class="btn-primary">Salvar frequencia</button>
+    </footer>
+  </main>
+
+  <script type="module" src="/assets/js/sala.js"></script>
+</body>
+</html>

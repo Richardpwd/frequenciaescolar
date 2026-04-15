@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avance | Novo Usuario</title>
+  <link rel="icon" href="/logo.jpeg" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <main class="auth-layout">
+    <section class="card auth-card">
+      <div class="logo">
+        <img src="/logo.jpeg" alt="Logo Avance" class="logo-image" />
+        <div>
+          <span class="logo-name">Avance</span>
+          <small class="logo-tagline">Educacao acompanhada de perto</small>
+        </div>
+      </div>
+      <h1 class="auth-title">Novo Usuario</h1>
+      <p class="auth-subtitle">Cadastre um usuario para acessar o sistema. O login deve ser unico.</p>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label for="nome">Nome</label>
+          <input id="nome" type="text" required />
+        </div>
+
+        <div class="form-group">
+          <label for="usuario">Usuario (login unico)</label>
+          <input id="usuario" type="text" required />
+        </div>
+
+        <div class="form-group">
+          <label for="senha">Senha</label>
+          <input id="senha" type="password" required />
+        </div>
+
+        <button type="submit" class="btn-primary">Cadastrar</button>
+      </form>
+
+      <div id="alert-box" class="alert"></div>
+      <div class="link-row">
+        <a href="/login.html">voltar ao login</a>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/register.js"></script>
+</body>
+</html>
