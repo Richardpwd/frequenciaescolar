@@ -2,7 +2,7 @@ import { get, post } from './api.js';
 import { setupRealtime } from './realtime.js';
 import { requireAuth, showAlert as renderAlert } from './ui.js';
 
-requireAuth();
+const auth = requireAuth();
 
 const params = new URLSearchParams(window.location.search);
 const salaId = params.get('salaId');
@@ -491,7 +491,7 @@ async function carregarAlunos() {
   }
 }
 
-if (hasSalaId) {
+if (auth && hasSalaId) {
   salvarBtn.addEventListener('click', async () => {
     const data = dataAula.value;
     if (!data) {

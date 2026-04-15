@@ -170,13 +170,26 @@ a:hover {
 }
 
 input,
-select,
-button {
+select {
   width: 100%;
-  padding: 13px 14px;
-  border-radius: 14px;
+  padding: 0.82rem 0.9rem;
+  border-radius: 0.9rem;
   border: 1px solid var(--border);
+  font-size: 1rem;
+}
+
+button {
+  width: auto;
+  max-width: 100%;
+  padding: 0.8rem 1.1rem;
+  border-radius: 0.9rem;
+  border: 1px solid transparent;
   font-size: 0.98rem;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 input,
@@ -201,7 +214,6 @@ select:focus {
 }
 
 button {
-  border: none;
   cursor: pointer;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -291,12 +303,14 @@ button:disabled {
   gap: 10px;
   flex-wrap: wrap;
   width: min(460px, 100%);
+  min-width: 0;
 }
 
 .topbar-actions button {
   width: auto;
-  flex: 1 1 130px;
-  min-height: 48px;
+  max-width: 100%;
+  flex: 1 1 clamp(8.5rem, 28vw, 11rem);
+  min-height: 2.8rem;
 }
 
 .topbar h1 {
@@ -455,6 +469,8 @@ button:disabled {
 
 .form-grid button {
   margin-top: 8px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .form-group-full {
@@ -602,8 +618,9 @@ button:disabled {
 }
 
 .status-group button {
-  flex: 1 1 100px;
+  flex: 1 1 6.2rem;
   min-width: 0;
+  max-width: 100%;
 }
 
 .status-btn {
@@ -792,11 +809,13 @@ button:disabled {
   justify-content: flex-end;
   align-items: stretch;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .footer-actions button {
-  flex: 1 1 220px;
-  max-width: 320px;
+  flex: 1 1 clamp(10rem, 42vw, 16rem);
+  width: auto;
+  max-width: 100%;
 }
 
 .hidden {
@@ -811,6 +830,29 @@ button:disabled {
   display: block;
   margin-bottom: 6px;
   font-size: 0.92rem;
+}
+
+@media (max-width: 768px) {
+  button {
+    max-width: 100%;
+    font-size: 0.92rem;
+    padding: 0.7rem 0.9rem;
+  }
+
+  .topbar-actions,
+  .footer-actions,
+  .status-group {
+    width: 100%;
+  }
+
+  .topbar-actions button,
+  .footer-actions button,
+  .status-group button,
+  .responsaveis-toggle {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 640px) {
@@ -973,5 +1015,25 @@ button:disabled {
 
   .mensal-table td button {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  button {
+    font-size: 0.84rem;
+    padding: 0.58rem 0.72rem;
+    border-radius: 0.8rem;
+  }
+
+  .topbar-actions,
+  .footer-actions,
+  .status-group {
+    gap: 8px;
+  }
+
+  .topbar-actions button,
+  .footer-actions button,
+  .status-group button {
+    min-height: 2.5rem;
   }
 }

@@ -1,4 +1,4 @@
-const CONTROL_CHARS_REGEX = /[\u0000-\u001F\u007F]/g;
+const CONTROL_CHARS_REGEX = /[\p{Cc}\p{Cs}]/gu;
 const SAFE_NAME_REGEX = /^[\p{L}\p{N} .,'-]+$/u;
 const USERNAME_REGEX = /^[a-zA-Z0-9._-]{4,50}$/;
 const PHONE_REGEX = /^[0-9+() -]{8,25}$/;

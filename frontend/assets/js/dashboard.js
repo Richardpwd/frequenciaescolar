@@ -21,7 +21,8 @@ const responsaveisAlunoList = document.getElementById('responsaveis-aluno-list')
 const addResponsavelBtn = document.getElementById('add-responsavel-btn');
 const salasTotal = document.getElementById('salas-total');
 
-usuarioNome.textContent = usuario?.nome || 'Usuario';
+if (auth) {
+  usuarioNome.textContent = usuario?.nome || 'Usuario';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -302,3 +303,4 @@ setupRealtime({
 carregarSalas();
 resetResponsaveisForm();
 updateToggleButtons();
+}

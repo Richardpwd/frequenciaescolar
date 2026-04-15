@@ -412,6 +412,11 @@ async function handleMemoryQuery(sql, params = []) {
         const filteredFreqs = hasDateFilter
           ? frequencias.filter((item) => withinDateRange(item.data_aula, inicio, fim))
           : frequencias;
+        const totalRegistros = filteredFreqs.length;
+
+        if (hasDateFilter && totalRegistros === 0) {
+          return null;
+        }
 
         return {
           aluno_id: aluno.id,
@@ -420,11 +425,9 @@ async function handleMemoryQuery(sql, params = []) {
           sala_nome: sala?.nome || 'Sala',
           presentes: filteredFreqs.filter((item) => item.status === 'presente').length,
           faltas: filteredFreqs.filter((item) => item.status === 'falta').length,
-          __total: filteredFreqs.length,
         };
       })
-      .filter((item) => !hasDateFilter || item.__total > 0)
-      .map(({ __total, ...item }) => item);
+      .filter(Boolean);
 
     return [rows];
   }

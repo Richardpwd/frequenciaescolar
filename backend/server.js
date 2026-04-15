@@ -295,14 +295,17 @@ app.get('/api/docs', (_req, res) => {
   });
 });
 
-app.get('/health', async (_req, res) => {
+const healthHandler = async (_req, res) => {
   try {
     await testConnection();
     res.json({ status: 'ok', db: dbMode });
   } catch (err) {
     res.status(503).json({ status: 'error', db: 'disconnected', detail: err.message });
   }
-});
+};
+
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/login.html'));
