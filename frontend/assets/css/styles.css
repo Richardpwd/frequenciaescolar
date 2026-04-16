@@ -36,6 +36,8 @@ body {
 a {
   color: var(--primary);
   text-decoration: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 a:hover {
@@ -228,6 +230,8 @@ button {
   cursor: pointer;
   font-weight: 700;
   letter-spacing: 0.01em;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
 }
 
@@ -260,6 +264,15 @@ button:disabled {
 .btn-danger {
   background: linear-gradient(180deg, #fff1f3, #ffe0e4);
   color: var(--danger);
+}
+
+.btn-small {
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  min-height: 32px;
+  height: auto;
+  max-height: none;
+  border-radius: 0.6rem;
 }
 
 .link-row {
@@ -522,6 +535,8 @@ button:disabled {
   display: grid;
   gap: 12px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
@@ -957,12 +972,13 @@ button:disabled {
   }
 
   .topbar h1 {
-    font-size: 1.45rem;
+    font-size: 1.3rem;
     overflow-wrap: anywhere;
   }
 
   .topbar-actions {
     flex-direction: column;
+    align-items: stretch;
     width: 100%;
   }
 
@@ -983,7 +999,12 @@ button:disabled {
     max-width: none;
   }
 
-  .topbar-actions button,
+  .topbar-actions button {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 auto;
+  }
+
   .status-group button {
     width: auto;
     max-width: 100%;
@@ -1120,6 +1141,39 @@ button:disabled {
   .mensal-table td button {
     width: 100%;
   }
+
+  .auth-card form button[type='submit'],
+  .auth-card form button:not([type='button']) {
+    width: 100%;
+  }
+
+  .auth-title {
+    font-size: 1.3rem;
+  }
+
+  .stat-card strong {
+    font-size: 1.4rem;
+  }
+
+  .hero-panel h2,
+  .room-intro h2 {
+    font-size: 1.3rem;
+    line-height: 1.3;
+  }
+
+  .section-title-row h2 {
+    font-size: 1.15rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.9rem;
+  }
+
+  input,
+  select {
+    font-size: 1rem;
+    padding: 0.78rem 0.85rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1143,7 +1197,14 @@ button:disabled {
     display: inline;
   }
 
-  .topbar-actions button,
+  .topbar-actions button {
+    width: 100%;
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+  }
+
   .status-group button {
     width: auto;
     flex: 1 1 calc(50% - 6px);
@@ -1161,5 +1222,62 @@ button:disabled {
     max-width: 100%;
     min-height: 48px;
     max-height: 60px;
+  }
+
+  .auth-card {
+    padding: 20px 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .auth-card {
+    padding: 16px 14px;
+    gap: 12px;
+  }
+
+  .logo-name {
+    font-size: 1.2rem;
+  }
+
+  .logo-tagline {
+    font-size: 0.78rem;
+  }
+
+  .logo-image {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+  }
+
+  .auth-title {
+    font-size: 1.1rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .topbar h1 {
+    font-size: 1.1rem;
+  }
+
+  .promo-pill {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
+  }
+
+  .container {
+    padding: 12px 0 96px;
+  }
+
+  .responsavel-panel,
+  .quick-guide,
+  .hero-panel,
+  .room-intro {
+    padding: 14px;
   }
 }
