@@ -182,15 +182,19 @@ button {
   width: auto;
   min-width: 0;
   max-width: 100%;
-  min-height: 2.3rem;
-  padding: clamp(0.5rem, 0.46rem + 0.22vw, 0.68rem) clamp(0.72rem, 0.68rem + 0.35vw, 0.95rem);
+  min-height: 2.85rem;
+  height: auto;
+  max-height: none;
+  aspect-ratio: auto;
+  padding: clamp(0.7rem, 0.62rem + 0.22vw, 0.88rem) clamp(0.9rem, 0.82rem + 0.35vw, 1.05rem);
   border-radius: 0.8rem;
   border: 1px solid transparent;
-  font-size: clamp(0.8rem, 0.78rem + 0.12vw, 0.92rem);
-  line-height: 1.15;
+  font-size: clamp(0.84rem, 0.8rem + 0.12vw, 0.95rem);
+  line-height: 1.2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: auto;
   gap: 0.32rem;
   flex-shrink: 1;
   text-align: center;
@@ -814,18 +818,21 @@ button:disabled {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  align-items: stretch;
+  align-items: center;
   flex-wrap: wrap;
   min-width: 0;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
   margin-left: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(18, 107, 255, 0.08);
 }
 
-.footer-actions .btn-secondary {
+.footer-actions > * {
   flex: 0 0 auto;
 }
 
+.footer-actions .btn-secondary,
 .footer-actions .btn-primary {
   flex: 0 1 auto;
 }
@@ -834,6 +841,11 @@ button:disabled {
   width: auto;
   min-width: 0;
   max-width: 100%;
+  min-height: 48px;
+  height: auto;
+  max-height: 64px;
+  padding: 12px 16px;
+  line-height: 1.2;
   white-space: normal;
 }
 
@@ -859,8 +871,10 @@ button:disabled {
   button {
     width: auto;
     max-width: 100%;
-    font-size: 0.84rem;
-    padding: 0.5rem 0.72rem;
+    min-height: 48px;
+    max-height: 64px;
+    font-size: 0.95rem;
+    padding: 12px 16px;
   }
 
   .topbar-actions,
@@ -872,12 +886,20 @@ button:disabled {
 
   .topbar-actions button,
   .status-group button,
-  .responsaveis-toggle,
-  .footer-actions button {
+  .responsaveis-toggle {
     flex: 1 1 min(10rem, 100%);
     width: auto;
     min-width: 0;
     max-width: 100%;
+  }
+
+  .footer-actions button {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 48px;
+    max-height: 64px;
   }
 
   .btn-label-desktop {
@@ -890,10 +912,11 @@ button:disabled {
 
   .footer-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    flex-wrap: nowrap;
     justify-content: flex-start;
     align-items: stretch;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
     max-width: 100%;
     margin-left: auto;
@@ -901,11 +924,11 @@ button:disabled {
 
   .footer-actions .btn-secondary,
   .footer-actions .btn-primary {
-    flex: 1 1 min(10rem, 100%);
+    flex: 0 0 auto;
   }
 
   .footer-actions button {
-    width: auto;
+    width: 100%;
     max-width: 100%;
   }
 }
@@ -961,14 +984,16 @@ button:disabled {
   }
 
   .topbar-actions button,
-  .status-group button,
-  .footer-actions button {
+  .status-group button {
     width: auto;
     max-width: 100%;
   }
 
   .footer-actions button {
+    width: 100%;
     max-width: 100%;
+    min-height: 48px;
+    box-shadow: 0 8px 18px rgba(30, 56, 120, 0.08);
   }
 
   .logo {
@@ -1015,12 +1040,14 @@ button:disabled {
   }
 
   .footer-actions {
-    position: static;
-    padding: 0;
-    border-radius: 0;
-    background: transparent;
-    backdrop-filter: none;
-    box-shadow: none;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+    border-radius: 16px 16px 0 0;
+    background: linear-gradient(180deg, rgba(246, 244, 255, 0.88), rgba(246, 244, 255, 0.97));
+    backdrop-filter: blur(8px);
+    box-shadow: 0 -10px 24px rgba(30, 56, 120, 0.08);
   }
 
   .auth-link-row {
@@ -1097,8 +1124,8 @@ button:disabled {
 
 @media (max-width: 480px) {
   button {
-    font-size: 0.76rem;
-    padding: 0.42rem 0.58rem;
+    font-size: 0.9rem;
+    padding: 12px 14px;
     border-radius: 0.72rem;
   }
 
@@ -1117,17 +1144,22 @@ button:disabled {
   }
 
   .topbar-actions button,
-  .footer-actions button,
   .status-group button {
     width: auto;
     flex: 1 1 calc(50% - 6px);
     min-width: 0;
     max-width: 100%;
-    min-height: 2rem;
+    min-height: 44px;
   }
 
+  .footer-actions button,
   .footer-actions .btn-secondary,
   .footer-actions .btn-primary {
-    flex: 1 1 calc(50% - 6px);
+    width: 100%;
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 48px;
+    max-height: 60px;
   }
 }
