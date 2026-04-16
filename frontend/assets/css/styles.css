@@ -831,35 +831,29 @@ button:disabled {
 .footer-actions {
   margin-top: 18px;
   display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
   align-items: center;
-  flex-wrap: wrap;
   min-width: 0;
   width: 100%;
   max-width: 100%;
-  margin-left: auto;
   padding-top: 10px;
   border-top: 1px solid rgba(18, 107, 255, 0.08);
 }
 
-.footer-actions > * {
+.footer-actions .btn-secondary,
+.footer-actions .btn-primary {
   flex: 0 0 auto;
 }
 
-.footer-actions .btn-secondary,
-.footer-actions .btn-primary {
-  flex: 0 1 auto;
-}
-
 .footer-actions button {
-  width: auto;
   min-width: 0;
-  max-width: 100%;
-  min-height: 48px;
   height: auto;
+  min-height: 44px;
   max-height: 54px;
-  padding: 12px 16px;
+  padding: 10px 20px;
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -908,43 +902,30 @@ button:disabled {
     max-width: 100%;
   }
 
-  .footer-actions button {
-    flex: 1 1 0;
-    width: auto;
-    min-width: 0;
-    max-width: 100%;
-    min-height: 48px;
-    max-height: 54px;
-  }
-
-  .btn-label-desktop {
-    display: none;
-  }
-
-  .btn-label-mobile {
-    display: inline;
-  }
-
   .footer-actions {
-    display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    justify-content: stretch;
+    justify-content: space-between;
     align-items: center;
     gap: 10px;
-    width: 100%;
-    max-width: 100%;
-    margin-left: auto;
   }
 
   .footer-actions .btn-secondary,
   .footer-actions .btn-primary {
     flex: 1 1 0;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .footer-actions button {
-    width: 100%;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
     max-width: 100%;
+    height: auto;
+    min-height: 44px;
+    max-height: 54px;
+    padding: 10px 14px;
   }
 }
 
@@ -1011,11 +992,10 @@ button:disabled {
   }
 
   .footer-actions button {
-    width: auto;
-    max-width: 100%;
-    min-height: 48px;
+    height: auto;
+    min-height: 44px;
     max-height: 54px;
-    box-shadow: 0 8px 18px rgba(30, 56, 120, 0.08);
+    box-shadow: 0 6px 14px rgba(30, 56, 120, 0.1);
   }
 
   .logo {
@@ -1221,8 +1201,10 @@ button:disabled {
     width: auto;
     min-width: 0;
     max-width: 100%;
-    min-height: 48px;
+    height: auto;
+    min-height: 44px;
     max-height: 54px;
+    padding: 10px 12px;
   }
 
   .auth-card {
