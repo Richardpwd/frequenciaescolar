@@ -21,12 +21,44 @@ const dbPort = Number(parsedDatabaseUrl?.port || process.env.DB_PORT || 3306);
 const dbName = String(parsedDatabaseUrl?.pathname || '').replace(/^\/+/, '') || process.env.DB_NAME || 'avance_frequencia';
 const isPublishedEnvironment = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
 const useInMemoryDb = process.env.USE_IN_MEMORY_DB === 'true' && !isPublishedEnvironment;
+const localhostHosts = new Set(['localhost', '127.0.0.1', '::1']);
 
 if (process.env.USE_IN_MEMORY_DB === 'true' && isPublishedEnvironment) {
   console.warn('[DB] USE_IN_MEMORY_DB foi ignorado em produção para evitar perda de dados.');
 }
 
-export const dbMode = useInMemoryDb ? 'memory' : 'mysql';
+export let dbMode = useInMemoryDb ? 'memory' : 'mysql';
+
+function shouldAllowLocalMemoryFallback() {
+  return !isPublishedEnvironment && localhostHosts.has(String(dbHost).toLowerCase());
+}
+
+function formatDbError(err) {
+  if (!err) {
+    return 'Erro desconhecido ao conectar no banco de dados.';
+  }
+
+  const parts = [];
+
+  if (typeof err.code === 'string' && err.code.trim()) {
+    parts.push(err.code.trim());
+  }
+
+  if (typeof err.message === 'string' && err.message.trim()) {
+    parts.push(err.message.trim());
+  }
+
+  if (typeof err.cause?.message === 'string' && err.cause.message.trim()) {
+    parts.push(err.cause.message.trim());
+  }
+
+  if (err.address || err.port) {
+    parts.push(`${err.address || dbHost}:${err.port || dbPort}`);
+  }
+
+  const summary = [...new Set(parts)].join(' - ');
+  return summary || String(err);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -557,8 +589,9 @@ function createMemoryPool() {
   };
 }
 
-const pool = useInMemoryDb
-  ? createMemoryPool()
+const memoryPool = createMemoryPool();
+let activePool = useInMemoryDb
+  ? memoryPool
   : mysql.createPool({
       host: dbHost,
       user: dbUser,
@@ -573,6 +606,13 @@ const pool = useInMemoryDb
       enableKeepAlive: true,
       keepAliveInitialDelay: 30000,
     });
+
+const pool = new Proxy({}, {
+  get(_target, prop) {
+    const value = activePool[prop];
+    return typeof value === 'function' ? value.bind(activePool) : value;
+  },
+});
 
 pool.on('error', (err) => {
   console.error('[DB] Erro inesperado no pool:', err.code, err.message);
@@ -592,7 +632,7 @@ export async function testConnection() {
 }
 
 export async function initializeDatabase(retries = 3, delayMs = 2000) {
-  if (useInMemoryDb) {
+  if (useInMemoryDb || dbMode === 'memory') {
     console.log('[DB] Ambiente iniciado com armazenamento em memoria.');
     return;
   }
@@ -621,11 +661,20 @@ export async function initializeDatabase(retries = 3, delayMs = 2000) {
       await connection.query(schemaSql);
       return;
     } catch (err) {
+      const errorMessage = formatDbError(err);
+
       if (attempt < retries) {
-        console.warn(`[DB] Tentativa ${attempt}/${retries} falhou: ${err.message}. Nova tentativa em ${delayMs}ms...`);
+        console.warn(`[DB] Tentativa ${attempt}/${retries} falhou: ${errorMessage}. Nova tentativa em ${delayMs}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
+      } else if (shouldAllowLocalMemoryFallback()) {
+        console.warn(`[DB] MySQL indisponivel localmente (${errorMessage}). Iniciando com armazenamento em memoria.`);
+        activePool = memoryPool;
+        dbMode = 'memory';
+        return;
       } else {
-        throw err;
+        const finalError = err instanceof Error ? err : new Error(String(err));
+        finalError.message = errorMessage;
+        throw finalError;
       }
     } finally {
       if (connection) {
