@@ -20,6 +20,10 @@ const alertBox = document.getElementById('alert-box');
 const alunoDetalhePanel = document.getElementById('aluno-detalhe-panel');
 const alunoDetalheSummary = document.getElementById('aluno-detalhe-summary');
 const alunoDetalheList = document.getElementById('aluno-detalhe-list');
+const countPresentesEl = document.getElementById('count-presentes');
+const countFaltasEl = document.getElementById('count-faltas');
+const countTotalEl = document.getElementById('count-total');
+const progressBarEl = document.getElementById('progress-bar');
 
 const frequenciaAtual = new Map();
 const responsaveisCache = new Map();
@@ -316,15 +320,19 @@ async function carregarResumoMensal() {
   }
 }
 
-function setStatusButtonStyle(presenteBtn, faltaBtn, status) {
-  presenteBtn.classList.remove('active-presente');
-  faltaBtn.classList.remove('active-falta');
-
-  if (status === 'presente') {
-    presenteBtn.classList.add('active-presente');
-  } else {
-    faltaBtn.classList.add('active-falta');
-  }
+function updateProgressBar() {
+  let presentes = 0;
+  let faltas = 0;
+  frequenciaAtual.forEach((status) => {
+    if (status === 'presente') presentes++;
+    else faltas++;
+  });
+  const total = presentes + faltas;
+  const pct = total > 0 ? Math.round((presentes / total) * 100) : 0;
+  if (countPresentesEl) countPresentesEl.textContent = presentes;
+  if (countFaltasEl) countFaltasEl.textContent = faltas;
+  if (countTotalEl) countTotalEl.textContent = `${total} aluno${total !== 1 ? 's' : ''}`;
+  if (progressBarEl) progressBarEl.style.width = `${pct}%`;
 }
 
 function createResponsavelCard(responsavel) {
@@ -351,12 +359,12 @@ async function toggleResponsaveis(aluno, details, button) {
   const isOpen = !details.classList.contains('hidden');
   if (isOpen) {
     details.classList.add('hidden');
-    button.textContent = 'Ver pais';
+    button.textContent = 'Ver responsáveis';
     return;
   }
 
   details.classList.remove('hidden');
-  button.textContent = 'Ocultar pais';
+  button.textContent = 'Ocultar responsáveis';
 
   if (responsaveisCache.has(aluno.id)) {
     return;
@@ -385,19 +393,25 @@ async function toggleResponsaveis(aluno, details, button) {
 function renderAluno(aluno, status = 'presente') {
   frequenciaAtual.set(aluno.id, status);
 
-  const item = document.createElement('div');
-  item.className = 'card aluno-item';
+  const item = document.createElement('article');
+  item.className = 'card aluno-card';
+
+  const bar = document.createElement('div');
+  bar.className = 'aluno-status-bar';
+
+  const content = document.createElement('div');
+  content.className = 'aluno-card-content';
 
   const info = document.createElement('div');
   info.className = 'aluno-info';
-  info.innerHTML = `<strong>${escapeHtml(aluno.nome)}</strong><small>ID: ${Number(aluno.id)}</small>`;
 
-  const meta = document.createElement('div');
-  meta.className = 'aluno-meta';
+  const nomeEl = document.createElement('strong');
+  nomeEl.className = 'aluno-nome';
+  nomeEl.textContent = aluno.nome;
 
   const responsaveisBtn = document.createElement('button');
-  responsaveisBtn.className = 'btn-secondary responsaveis-toggle';
-  responsaveisBtn.textContent = 'Ver pais';
+  responsaveisBtn.className = 'btn-ghost responsaveis-toggle';
+  responsaveisBtn.textContent = 'Ver responsáveis';
 
   const responsaveisDetails = document.createElement('div');
   responsaveisDetails.className = 'responsaveis-details hidden';
@@ -411,38 +425,52 @@ function renderAluno(aluno, status = 'presente') {
     }
   });
 
-  meta.appendChild(responsaveisBtn);
-  meta.appendChild(responsaveisDetails);
-  info.appendChild(meta);
+  info.appendChild(nomeEl);
+  info.appendChild(responsaveisBtn);
+  info.appendChild(responsaveisDetails);
 
-  const statusGroup = document.createElement('div');
-  statusGroup.className = 'status-group';
+  const toggle = document.createElement('div');
+  toggle.className = 'aluno-status-toggle';
 
   const presenteBtn = document.createElement('button');
-  presenteBtn.className = 'btn-secondary status-btn';
-  presenteBtn.textContent = 'Presente';
+  presenteBtn.className = 'status-btn status-btn-presente';
+  presenteBtn.setAttribute('aria-label', `Marcar ${escapeHtml(aluno.nome)} como presente`);
+  presenteBtn.textContent = '✓ Presente';
 
   const faltaBtn = document.createElement('button');
-  faltaBtn.className = 'btn-danger status-btn';
-  faltaBtn.textContent = 'Falta';
+  faltaBtn.className = 'status-btn status-btn-falta';
+  faltaBtn.setAttribute('aria-label', `Marcar ${escapeHtml(aluno.nome)} como falta`);
+  faltaBtn.textContent = '✗ Falta';
 
-  setStatusButtonStyle(presenteBtn, faltaBtn, status);
+  function applyCardState(s) {
+    item.classList.toggle('aluno-presente', s === 'presente');
+    item.classList.toggle('aluno-falta', s === 'falta');
+    presenteBtn.classList.toggle('status-btn-active', s === 'presente');
+    faltaBtn.classList.toggle('status-btn-active', s === 'falta');
+  }
+
+  applyCardState(status);
 
   presenteBtn.addEventListener('click', () => {
     frequenciaAtual.set(aluno.id, 'presente');
-    setStatusButtonStyle(presenteBtn, faltaBtn, 'presente');
+    applyCardState('presente');
+    updateProgressBar();
   });
 
   faltaBtn.addEventListener('click', () => {
     frequenciaAtual.set(aluno.id, 'falta');
-    setStatusButtonStyle(presenteBtn, faltaBtn, 'falta');
+    applyCardState('falta');
+    updateProgressBar();
   });
 
-  statusGroup.appendChild(presenteBtn);
-  statusGroup.appendChild(faltaBtn);
+  toggle.appendChild(presenteBtn);
+  toggle.appendChild(faltaBtn);
 
-  item.appendChild(info);
-  item.appendChild(statusGroup);
+  content.appendChild(info);
+  content.appendChild(toggle);
+
+  item.appendChild(bar);
+  item.appendChild(content);
 
   return item;
 }
@@ -477,6 +505,7 @@ async function carregarAlunos() {
         </article>
       `;
       salvarBtn.disabled = true;
+      updateProgressBar();
       return;
     }
 
@@ -486,6 +515,7 @@ async function carregarAlunos() {
       const status = statusPorAluno.get(aluno.id) || 'presente';
       alunosList.appendChild(renderAluno(aluno, status));
     });
+    updateProgressBar();
   } catch (error) {
     showAlert(error.message);
   }

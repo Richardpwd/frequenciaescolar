@@ -28,14 +28,24 @@
 
     <div id="alert-box" class="alert"></div>
 
-    <section class="card room-intro">
-      <div>
-        <p class="eyebrow">Chamada da turma</p>
-        <h2>Marque a presença do dia e consulte os responsáveis quando precisar.</h2>
-        <p class="hero-copy">Escolha a data, revise os alunos e salve a frequência ao final.</p>
-        <div class="promo-pill">💡 Tudo pronto para registrar a aula em poucos toques</div>
+    <section class="chamada-bar card">
+      <div class="chamada-count presentes-count">
+        <span class="count-num" id="count-presentes">—</span>
+        <span class="count-label">Presentes</span>
+      </div>
+      <div class="chamada-progress-col">
+        <div class="chamada-progress-wrap">
+          <div class="progress-fill" id="progress-bar" style="width: 0%"></div>
+        </div>
+        <span class="chamada-total" id="count-total">Carregando...</span>
+      </div>
+      <div class="chamada-count faltas-count">
+        <span class="count-num" id="count-faltas">—</span>
+        <span class="count-label">Faltas</span>
       </div>
     </section>
+
+    <section id="alunos-list" class="alunos-list"></section>
 
     <section class="card responsavel-panel">
       <div class="section-heading">
@@ -64,8 +74,6 @@
       <div id="aluno-detalhe-summary" class="mensal-summary"></div>
       <div id="aluno-detalhe-list" class="mensal-matrix"></div>
     </section>
-
-    <section id="alunos-list" class="alunos-list"></section>
 
     <footer class="footer-actions">
       <button id="voltar-btn" class="btn-secondary">Voltar</button>

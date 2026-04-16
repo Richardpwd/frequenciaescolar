@@ -1296,3 +1296,247 @@ button:disabled {
     padding: 14px;
   }
 }
+
+/* ── Barra de progresso da chamada ─────────────────────── */
+.chamada-bar {
+  display: grid;
+  grid-template-columns: 72px 1fr 72px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(226,237,255,0.78));
+  border: 1px solid rgba(18,107,255,0.1);
+}
+
+.chamada-count {
+  text-align: center;
+}
+
+.count-num {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.presentes-count .count-num {
+  color: var(--success);
+}
+
+.faltas-count .count-num {
+  color: var(--danger);
+}
+
+.count-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--text-soft);
+  margin-top: 4px;
+}
+
+.chamada-progress-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chamada-progress-wrap {
+  position: relative;
+  height: 10px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--success), #4ecb8c);
+  border-radius: 999px;
+  transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+.chamada-total {
+  display: block;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+/* ── Novo card de aluno ─────────────────────────────────── */
+.aluno-card {
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.aluno-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(30,56,120,0.12);
+}
+
+.aluno-status-bar {
+  width: 5px;
+  flex-shrink: 0;
+  background: var(--border);
+  transition: background 0.25s ease;
+}
+
+.aluno-card.aluno-presente .aluno-status-bar {
+  background: var(--success);
+}
+
+.aluno-card.aluno-falta .aluno-status-bar {
+  background: var(--danger);
+}
+
+.aluno-card-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  gap: 14px;
+  min-width: 0;
+}
+
+.aluno-nome {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  margin-bottom: 6px;
+}
+
+.aluno-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.aluno-status-toggle {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.status-btn-presente,
+.status-btn-falta {
+  padding: 8px 14px;
+  font-size: 0.84rem;
+  min-height: 36px;
+  height: auto;
+  max-height: none;
+  border-radius: 10px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.status-btn-presente {
+  background: rgba(15,159,97,0.1);
+  color: var(--success);
+  border-color: rgba(15,159,97,0.2);
+}
+
+.status-btn-presente.status-btn-active {
+  background: linear-gradient(135deg, #1f9d62, #0c6b58);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(15,159,97,0.32);
+}
+
+.status-btn-falta {
+  background: rgba(214,69,93,0.1);
+  color: var(--danger);
+  border-color: rgba(214,69,93,0.2);
+}
+
+.status-btn-falta.status-btn-active {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(220,38,38,0.3);
+}
+
+.status-btn-presente:hover,
+.status-btn-falta:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.1);
+}
+
+/* Botão ghost para responsáveis */
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  min-height: 28px;
+  height: auto;
+  max-height: none;
+  border-radius: 8px;
+  width: fit-content;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btn-ghost:hover {
+  background: rgba(18,107,255,0.07);
+  color: var(--primary);
+  border-color: rgba(18,107,255,0.2);
+  transform: none;
+  filter: none;
+}
+
+/* Responsivo da barra e novos cards */
+@media (max-width: 640px) {
+  .chamada-bar {
+    grid-template-columns: 60px 1fr 60px;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .count-num {
+    font-size: 1.6rem;
+  }
+
+  .aluno-card-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .aluno-status-toggle {
+    width: 100%;
+  }
+
+  .status-btn-presente,
+  .status-btn-falta {
+    flex: 1;
+    font-size: 0.9rem;
+    min-height: 44px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .chamada-bar {
+    grid-template-columns: 52px 1fr 52px;
+    padding: 10px 12px;
+  }
+
+  .count-num {
+    font-size: 1.4rem;
+  }
+}
