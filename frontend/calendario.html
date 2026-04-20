@@ -35,8 +35,18 @@
         <p class="eyebrow">Planejamento escolar</p>
         <h2>Organize feriados, reuniões, provas e eventos do mês.</h2>
         <p class="hero-copy">Toque em um dia para criar uma marcação e mantenha a rotina da escola visível para toda a equipe.</p>
+        <div class="hero-highlights">
+          <span class="info-chip">Marcações do mês: <strong id="month-total-count">0</strong></span>
+          <span class="info-chip">Feriados: <strong id="holiday-total-count">0</strong></span>
+          <span class="info-chip">Exibição: <strong id="active-filter-label">Todos</strong></span>
+        </div>
       </div>
-      <div class="calendar-legend" id="calendar-legend"></div>
+      <div class="calendar-summary-card">
+        <p class="eyebrow">Cadastro rápido</p>
+        <h3>Adicionar feriado</h3>
+        <p class="hero-copy">Registre dias sem aula em poucos segundos e deixe o calendário sempre atualizado.</p>
+        <button id="hero-holiday-btn" class="btn-primary" type="button">Cadastrar feriado</button>
+      </div>
     </section>
 
     <section class="card action-hub">
@@ -61,6 +71,45 @@
           <span>Voltar ao mês atual</span>
         </button>
       </div>
+      <div class="calendar-filter-bar">
+        <span class="filter-label">Visualizar:</span>
+        <div class="calendar-filters">
+          <button class="filter-chip is-active" type="button" data-filter="todos">Tudo</button>
+          <button class="filter-chip" type="button" data-filter="feriado">Somente feriados</button>
+          <button class="filter-chip" type="button" data-filter="nao-feriado">Eventos e atividades</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card holiday-quick-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Feriados escolares</p>
+          <h2>Cadastro rápido de feriado</h2>
+          <p class="auth-subtitle">Use esta área para lançar recessos, datas comemorativas e feriados oficiais.</p>
+        </div>
+      </div>
+
+      <form id="holiday-form" class="holiday-form" novalidate>
+        <div class="form-group">
+          <label for="holiday-title">Nome do feriado</label>
+          <input id="holiday-title" type="text" maxlength="120" placeholder="Ex.: Dia da Consciência Negra" />
+        </div>
+
+        <div class="form-group">
+          <label for="holiday-date">Data do feriado</label>
+          <input id="holiday-date" type="date" />
+        </div>
+
+        <div class="form-group form-group-full">
+          <label for="holiday-description">Descrição opcional</label>
+          <input id="holiday-description" type="text" maxlength="255" placeholder="Informações para a equipe escolar" />
+        </div>
+
+        <div class="holiday-form-actions form-group-full">
+          <button id="holiday-save-btn" type="submit" class="btn-secondary">Salvar feriado</button>
+        </div>
+      </form>
     </section>
 
     <section class="calendar-layout">
@@ -98,6 +147,16 @@
             </div>
           </div>
           <div id="upcoming-events" class="upcoming-events"></div>
+        </section>
+
+        <section class="card sidebar-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Feriados cadastrados</p>
+              <h2>Datas sem aula</h2>
+            </div>
+          </div>
+          <div id="holiday-events" class="upcoming-events"></div>
         </section>
       </aside>
     </section>

@@ -15,12 +15,19 @@ const EVENT_META = {
   observacao: { label: 'Observação', color: '#64748b' },
 };
 
+const FILTER_LABELS = {
+  todos: 'Todos',
+  feriado: 'Somente feriados',
+  'nao-feriado': 'Eventos e atividades',
+};
+
 const state = {
   currentDate: new Date(),
   items: [],
   editingId: null,
   usingFallback: false,
   fallbackNotified: false,
+  filter: 'todos',
 };
 
 const usuarioNome = document.getElementById('usuario-nome');
@@ -28,13 +35,18 @@ const alertBox = document.getElementById('alert-box');
 const monthTitle = document.getElementById('month-title');
 const calendarGrid = document.getElementById('calendar-grid');
 const upcomingEvents = document.getElementById('upcoming-events');
+const holidayEvents = document.getElementById('holiday-events');
 const legend = document.getElementById('calendar-legend');
+const monthTotalCount = document.getElementById('month-total-count');
+const holidayTotalCount = document.getElementById('holiday-total-count');
+const activeFilterLabel = document.getElementById('active-filter-label');
 const modal = document.getElementById('calendar-modal');
 const modalCard = modal?.querySelector('.modal-card');
 const modalTitle = document.getElementById('modal-title');
 const closeModalBtn = document.getElementById('close-modal-btn');
 const addEventBtn = document.getElementById('add-event-btn');
 const addHolidayBtn = document.getElementById('add-holiday-btn');
+const heroHolidayBtn = document.getElementById('hero-holiday-btn');
 const quickNewEventBtn = document.getElementById('quick-new-event-btn');
 const quickNewHolidayBtn = document.getElementById('quick-new-holiday-btn');
 const quickTodayBtn = document.getElementById('quick-today-btn');
@@ -42,13 +54,19 @@ const prevMonthBtn = document.getElementById('prev-month-btn');
 const nextMonthBtn = document.getElementById('next-month-btn');
 const todayBtn = document.getElementById('today-btn');
 const calendarForm = document.getElementById('calendar-form');
+const holidayForm = document.getElementById('holiday-form');
 const cancelModalBtn = document.getElementById('cancel-modal-btn');
 const saveEventBtn = document.getElementById('save-event-btn');
+const holidaySaveBtn = document.getElementById('holiday-save-btn');
 const deleteEventBtn = document.getElementById('delete-event-btn');
 const tituloInput = document.getElementById('evento-titulo');
 const dataInput = document.getElementById('evento-data');
 const tipoInput = document.getElementById('evento-tipo');
 const descricaoInput = document.getElementById('evento-descricao');
+const holidayTitleInput = document.getElementById('holiday-title');
+const holidayDateInput = document.getElementById('holiday-date');
+const holidayDescriptionInput = document.getElementById('holiday-description');
+const filterButtons = Array.from(document.querySelectorAll('[data-filter]'));
 
 const usuario = getSessionUser();
 if (usuarioNome) {
@@ -80,6 +98,18 @@ function getTypeMeta(type) {
   return EVENT_META[type] || EVENT_META.evento;
 }
 
+function getFilteredItems(items = state.items) {
+  if (state.filter === 'feriado') {
+    return items.filter((item) => item.tipo === 'feriado');
+  }
+
+  if (state.filter === 'nao-feriado') {
+    return items.filter((item) => item.tipo !== 'feriado');
+  }
+
+  return items;
+}
+
 function sortItems(items) {
   return [...items].sort((a, b) => {
     const byDate = String(a.data_evento).localeCompare(String(b.data_evento));
@@ -103,65 +133,36 @@ function isSameMonth(dateValue, monthValue) {
   return String(dateValue || '').startsWith(`${monthValue}-`);
 }
 
-async function listMonthItems(monthValue) {
-  try {
-    const data = await get(`/calendario?mes=${monthValue}`);
-    state.usingFallback = false;
-    return sortItems(normalizeItems(data));
-  } catch {
-    state.usingFallback = true;
-
-    if (!state.fallbackNotified) {
-      state.fallbackNotified = true;
-      showAlert(alertBox, 'Calendário em modo local temporário. A API principal não respondeu.', 'error');
-    }
-
-    return readLocalItems().filter((item) => isSameMonth(item.data_evento, monthValue));
+function getModalHeading(type = 'evento', isEditing = false) {
+  if (type === 'feriado') {
+    return isEditing ? 'Editar feriado' : 'Novo feriado';
   }
+
+  return isEditing ? 'Editar marcação' : 'Nova marcação';
 }
 
-async function createOrUpdateItem(payload) {
-  if (!state.usingFallback) {
-    try {
-      if (state.editingId) {
-        await put(`/calendario/${state.editingId}`, payload);
-      } else {
-        await post('/calendario', payload);
-      }
-      return;
-    } catch {
-      state.usingFallback = true;
-    }
+function getSaveLabel(type = 'evento', isEditing = false) {
+  if (type === 'feriado') {
+    return isEditing ? 'Salvar feriado' : 'Cadastrar feriado';
   }
 
-  const localItems = readLocalItems();
-
-  if (state.editingId) {
-    const updated = localItems.map((item) => (
-      Number(item.id) === Number(state.editingId)
-        ? { ...item, ...payload, id: Number(state.editingId) }
-        : item
-    ));
-    saveLocalItems(updated);
-    return;
-  }
-
-  const nextId = localItems.length > 0 ? Math.max(...localItems.map((item) => Number(item.id) || 0)) + 1 : 1;
-  saveLocalItems([...localItems, { id: nextId, ...payload }]);
+  return isEditing ? 'Salvar alterações' : 'Salvar marcação';
 }
 
-async function removeItem(itemId) {
-  if (!state.usingFallback) {
-    try {
-      await del(`/calendario/${itemId}`);
-      return;
-    } catch {
-      state.usingFallback = true;
-    }
+function updateSummaryCards() {
+  const holidayCount = state.items.filter((item) => item.tipo === 'feriado').length;
+
+  if (monthTotalCount) {
+    monthTotalCount.textContent = String(state.items.length);
   }
 
-  const items = readLocalItems().filter((item) => Number(item.id) !== Number(itemId));
-  saveLocalItems(items);
+  if (holidayTotalCount) {
+    holidayTotalCount.textContent = String(holidayCount);
+  }
+
+  if (activeFilterLabel) {
+    activeFilterLabel.textContent = FILTER_LABELS[state.filter] || 'Todos';
+  }
 }
 
 function renderLegend() {
@@ -170,24 +171,44 @@ function renderLegend() {
   `).join('');
 }
 
+function renderFilterButtons() {
+  filterButtons.forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.filter === state.filter);
+  });
+}
+
+function attachListClickHandlers(container, items) {
+  container?.querySelectorAll('[data-event-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const eventId = Number(button.dataset.eventId);
+      const selected = items.find((item) => Number(item.id) === eventId);
+      if (selected) {
+        openModal(selected);
+      }
+    });
+  });
+}
+
 function renderUpcomingEvents() {
-  if (!state.items.length) {
+  const visibleItems = getFilteredItems(state.items);
+
+  if (!visibleItems.length) {
     upcomingEvents.innerHTML = `
       <article class="empty-state cardless-empty">
-        <h3>Nenhuma marcação neste mês</h3>
-        <p>Use os botões acima para registrar feriados, reuniões, provas e eventos.</p>
+        <h3>Nada exibido neste filtro</h3>
+        <p>Troque a visualização ou adicione um novo evento no calendário.</p>
       </article>
     `;
     return;
   }
 
-  upcomingEvents.innerHTML = state.items.map((item) => {
+  upcomingEvents.innerHTML = visibleItems.map((item) => {
     const meta = getTypeMeta(item.tipo);
     const day = new Date(`${item.data_evento}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
     return `
       <button type="button" class="event-list-item" data-event-id="${Number(item.id)}">
-        <span class="event-list-dot" style="background:${meta.color}"></span>
+        <span class="event-list-dot" style="background:${item.cor || meta.color}"></span>
         <span>
           <strong>${item.titulo}</strong>
           <small>${meta.label} • ${day}</small>
@@ -196,24 +217,51 @@ function renderUpcomingEvents() {
     `;
   }).join('');
 
-  upcomingEvents.querySelectorAll('[data-event-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const eventId = Number(button.dataset.eventId);
-      const selected = state.items.find((item) => Number(item.id) === eventId);
-      if (selected) {
-        openModal(selected);
-      }
-    });
-  });
+  attachListClickHandlers(upcomingEvents, visibleItems);
+}
+
+function renderHolidayEvents() {
+  const items = state.items.filter((item) => item.tipo === 'feriado');
+
+  if (!items.length) {
+    if (holidayEvents) {
+      holidayEvents.innerHTML = `
+        <article class="empty-state cardless-empty">
+          <h3>Nenhum feriado cadastrado</h3>
+          <p>Use o formulário acima para incluir datas sem aula.</p>
+        </article>
+      `;
+    }
+    return;
+  }
+
+  if (holidayEvents) {
+    holidayEvents.innerHTML = items.map((item) => {
+      const day = new Date(`${item.data_evento}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+      return `
+        <button type="button" class="event-list-item holiday-item" data-event-id="${Number(item.id)}">
+          <span class="event-list-dot" style="background:${item.cor || EVENT_META.feriado.color}"></span>
+          <span>
+            <strong>${item.titulo}</strong>
+            <small>Feriado • ${day}</small>
+          </span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  attachListClickHandlers(holidayEvents, items);
 }
 
 function createDayCard(date, isCurrentMonth) {
   const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   const todayIso = new Date().toISOString().slice(0, 10);
-  const dayItems = state.items.filter((item) => item.data_evento === isoDate);
+  const dayItems = getFilteredItems(state.items).filter((item) => item.data_evento === isoDate);
+  const hasHoliday = state.items.some((item) => item.data_evento === isoDate && item.tipo === 'feriado');
 
   return `
-    <button type="button" class="calendar-day${isCurrentMonth ? '' : ' is-outside'}${isoDate === todayIso ? ' is-today' : ''}" data-date="${isoDate}">
+    <button type="button" class="calendar-day${isCurrentMonth ? '' : ' is-outside'}${isoDate === todayIso ? ' is-today' : ''}${hasHoliday ? ' has-holiday' : ''}" data-date="${isoDate}">
       <span class="calendar-day-number">${date.getDate()}</span>
       <span class="calendar-day-events">
         ${dayItems.slice(0, 3).map((item) => {
@@ -221,6 +269,7 @@ function createDayCard(date, isCurrentMonth) {
           return `<span class="calendar-badge" data-event-id="${Number(item.id)}" style="--event-color:${item.cor || meta.color}">${item.titulo}</span>`;
         }).join('')}
         ${dayItems.length > 3 ? `<span class="calendar-more">+${dayItems.length - 3} mais</span>` : ''}
+        ${!dayItems.length && hasHoliday && state.filter !== 'nao-feriado' ? '<span class="calendar-more holiday-highlight">Feriado</span>' : ''}
       </span>
     </button>
   `;
@@ -278,7 +327,19 @@ function resetCalendarForm() {
   }
 
   if (modalTitle) {
-    modalTitle.textContent = 'Novo evento';
+    modalTitle.textContent = getModalHeading('evento', false);
+  }
+
+  if (saveEventBtn) {
+    saveEventBtn.textContent = getSaveLabel('evento', false);
+  }
+}
+
+function resetHolidayForm() {
+  holidayForm?.reset();
+
+  if (holidayDateInput) {
+    holidayDateInput.value = new Date().toISOString().slice(0, 10);
   }
 }
 
@@ -302,22 +363,31 @@ function openNewEventModal(type = 'evento') {
 }
 
 function openModal(item = {}) {
+  const selectedType = item.tipo || 'evento';
   state.editingId = item.id ? Number(item.id) : null;
   setModalVisibility(true);
-  modalTitle.textContent = state.editingId ? 'Editar marcação' : 'Nova marcação';
+  modalTitle.textContent = getModalHeading(selectedType, Boolean(state.editingId));
   tituloInput.value = item.titulo || '';
   dataInput.value = String(item.data_evento || new Date().toISOString().slice(0, 10)).slice(0, 10);
-  tipoInput.value = item.tipo || 'evento';
+  tipoInput.value = selectedType;
   descricaoInput.value = item.descricao || '';
   deleteEventBtn.classList.toggle('hidden', !state.editingId);
+
+  if (saveEventBtn) {
+    saveEventBtn.textContent = getSaveLabel(selectedType, Boolean(state.editingId));
+  }
+
   tituloInput.focus();
 }
 
 async function refreshCalendar() {
   const monthValue = getMonthValue(state.currentDate);
   state.items = await listMonthItems(monthValue);
+  updateSummaryCards();
+  renderFilterButtons();
   renderCalendar();
   renderUpcomingEvents();
+  renderHolidayEvents();
 }
 
 addEventBtn?.addEventListener('click', () => {
@@ -328,12 +398,26 @@ addHolidayBtn?.addEventListener('click', () => {
   openNewEventModal('feriado');
 });
 
+heroHolidayBtn?.addEventListener('click', () => {
+  openNewEventModal('feriado');
+});
+
 quickNewEventBtn?.addEventListener('click', () => {
   openNewEventModal('evento');
 });
 
 quickNewHolidayBtn?.addEventListener('click', () => {
   openNewEventModal('feriado');
+});
+
+filterButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    state.filter = button.dataset.filter || 'todos';
+    updateSummaryCards();
+    renderFilterButtons();
+    renderCalendar();
+    renderUpcomingEvents();
+  });
 });
 
 prevMonthBtn?.addEventListener('click', async () => {
@@ -372,6 +456,15 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+tipoInput?.addEventListener('change', () => {
+  const selectedType = tipoInput.value || 'evento';
+  modalTitle.textContent = getModalHeading(selectedType, Boolean(state.editingId));
+
+  if (saveEventBtn) {
+    saveEventBtn.textContent = getSaveLabel(selectedType, Boolean(state.editingId));
+  }
+});
+
 deleteEventBtn?.addEventListener('click', async () => {
   if (!state.editingId) {
     return;
@@ -380,10 +473,60 @@ deleteEventBtn?.addEventListener('click', async () => {
   try {
     await removeItem(state.editingId);
     closeModal();
-    showAlert(alertBox, 'Evento excluído com sucesso.', 'success');
+    showAlert(alertBox, 'Marcação excluída com sucesso.', 'success');
     await refreshCalendar();
   } catch (error) {
     showAlert(alertBox, error.message || 'Não foi possível excluir o evento.');
+  }
+});
+
+holidayForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const titulo = holidayTitleInput.value.trim();
+  const data = holidayDateInput.value;
+  const descricao = holidayDescriptionInput.value.trim();
+  const meta = getTypeMeta('feriado');
+
+  if (!titulo) {
+    showAlert(alertBox, 'Informe o nome do feriado para continuar.');
+    holidayTitleInput.focus();
+    return;
+  }
+
+  if (!data) {
+    showAlert(alertBox, 'Escolha a data do feriado para continuar.');
+    holidayDateInput.focus();
+    return;
+  }
+
+  if (holidaySaveBtn) {
+    holidaySaveBtn.disabled = true;
+    holidaySaveBtn.textContent = 'Salvando...';
+  }
+
+  try {
+    state.editingId = null;
+    await createOrUpdateItem({
+      titulo,
+      data,
+      tipo: 'feriado',
+      descricao,
+      cor: meta.color,
+      data_evento: data,
+    });
+
+    state.currentDate = new Date(`${data}T12:00:00`);
+    resetHolidayForm();
+    await refreshCalendar();
+    showAlert(alertBox, 'Feriado cadastrado com sucesso.', 'success');
+  } catch (error) {
+    showAlert(alertBox, error.message || 'Não foi possível salvar o feriado.');
+  } finally {
+    if (holidaySaveBtn) {
+      holidaySaveBtn.disabled = false;
+      holidaySaveBtn.textContent = 'Salvar feriado';
+    }
   }
 });
 
@@ -433,13 +576,18 @@ calendarForm?.addEventListener('submit', async (event) => {
     state.currentDate = new Date(`${data}T12:00:00`);
     await refreshCalendar();
     closeModal();
-    showAlert(alertBox, wasEditing ? 'Evento atualizado com sucesso.' : 'Evento cadastrado com sucesso.', 'success');
+
+    const message = tipo === 'feriado'
+      ? (wasEditing ? 'Feriado atualizado com sucesso.' : 'Feriado cadastrado com sucesso.')
+      : (wasEditing ? 'Evento atualizado com sucesso.' : 'Evento cadastrado com sucesso.');
+
+    showAlert(alertBox, message, 'success');
   } catch (error) {
     showAlert(alertBox, error.message || 'Não foi possível salvar o evento.');
   } finally {
     if (saveEventBtn) {
       saveEventBtn.disabled = false;
-      saveEventBtn.textContent = 'Salvar marcação';
+      saveEventBtn.textContent = getSaveLabel(tipoInput?.value || 'evento', Boolean(state.editingId));
     }
   }
 });
@@ -449,4 +597,6 @@ if (!modal || !calendarForm || !tituloInput || !dataInput || !tipoInput) {
 }
 
 renderLegend();
+resetCalendarForm();
+resetHolidayForm();
 refreshCalendar();
