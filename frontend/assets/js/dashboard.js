@@ -20,6 +20,10 @@ const responsaveisAlunoWrapper = document.getElementById('responsaveis-aluno-wra
 const responsaveisAlunoList = document.getElementById('responsaveis-aluno-list');
 const addResponsavelBtn = document.getElementById('add-responsavel-btn');
 const salasTotal = document.getElementById('salas-total');
+const quickSalaBtn = document.getElementById('quick-sala-btn');
+const quickAlunoBtn = document.getElementById('quick-aluno-btn');
+const quickChamadaBtn = document.getElementById('quick-chamada-btn');
+const calendarPreview = document.getElementById('calendar-preview');
 
 if (auth) {
   usuarioNome.textContent = usuario?.nome || 'Usuario';
@@ -53,6 +57,57 @@ function showSuccess(message) {
   showAlert(alertBox, message, 'success');
 }
 
+function renderCalendarPreview(items = []) {
+  if (!calendarPreview) {
+    return;
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    calendarPreview.innerHTML = `
+      <article class="empty-state">
+        <h3>Nenhum evento neste mês</h3>
+        <p>Use o botão Calendário para cadastrar feriados, reuniões e provas.</p>
+      </article>
+    `;
+    return;
+  }
+
+  calendarPreview.innerHTML = items.slice(0, 6).map((item) => {
+    const normalizedDate = String(item.data_evento || item.data || '').slice(0, 10);
+    const dataFormatada = normalizedDate
+      ? new Date(`${normalizedDate}T12:00:00`).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+        })
+      : 'Sem data';
+
+    return `
+      <article class="preview-event-card">
+        <span class="preview-event-dot" style="background:${escapeHtml(item.cor || '#126bff')}"></span>
+        <div>
+          <strong>${escapeHtml(item.titulo || 'Evento')}</strong>
+          <p>${escapeHtml(item.tipo || 'evento')} • ${escapeHtml(dataFormatada)}</p>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+async function carregarCalendarioResumo() {
+  if (!calendarPreview) {
+    return;
+  }
+
+  try {
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const payload = await get(`/calendario?mes=${mesAtual}`);
+    const items = normalizeItems(payload);
+    renderCalendarPreview(items);
+  } catch {
+    renderCalendarPreview([]);
+  }
+}
+
 function createResponsavelFields(index) {
   const card = document.createElement('div');
   card.className = 'responsavel-inline-card';
@@ -71,9 +126,18 @@ function createResponsavelFields(index) {
         <label>Telefone</label>
         <input type="tel" class="resp-telefone" maxlength="25" />
       </div>
+      <div class="form-group">
+        <label>Data de nascimento</label>
+        <input type="date" class="resp-data-nascimento" />
+      </div>
       <button type="button" class="btn-danger remover-responsavel-btn">Remover</button>
     </div>
   `;
+
+  const dataNascimentoInput = card.querySelector('.resp-data-nascimento');
+  if (dataNascimentoInput) {
+    dataNascimentoInput.max = new Date().toISOString().split('T')[0];
+  }
 
   const removerBtn = card.querySelector('.remover-responsavel-btn');
   removerBtn.addEventListener('click', () => {
@@ -118,17 +182,18 @@ function coletarResponsaveisParaEnvio() {
     const nome = String(card.querySelector('.resp-nome')?.value || '').trim();
     const email = String(card.querySelector('.resp-email')?.value || '').trim();
     const telefone = String(card.querySelector('.resp-telefone')?.value || '').trim();
+    const dataNascimento = String(card.querySelector('.resp-data-nascimento')?.value || '').trim();
 
-    const algumCampoPreenchido = Boolean(nome || email || telefone);
+    const algumCampoPreenchido = Boolean(nome || email || telefone || dataNascimento);
     if (!algumCampoPreenchido) {
       return;
     }
 
-    if (!nome || !email || !telefone) {
-      throw new Error(`Preencha nome, email e telefone do responsavel ${index + 1}.`);
+    if (!nome || !email || !telefone || !dataNascimento) {
+      throw new Error(`Preencha nome, email, telefone e data de nascimento do responsavel ${index + 1}.`);
     }
 
-    responsaveis.push({ nome, email, telefone });
+    responsaveis.push({ nome, email, telefone, dataNascimento });
   });
 
   if (responsaveis.length === 0) {
@@ -215,6 +280,18 @@ toggleAlunoBtn.addEventListener('click', () => {
   togglePanel(alunoPanel, salaPanel);
 });
 
+quickAlunoBtn?.addEventListener('click', () => {
+  togglePanel(alunoPanel, salaPanel);
+});
+
+quickSalaBtn?.addEventListener('click', () => {
+  togglePanel(salaPanel, alunoPanel);
+});
+
+quickChamadaBtn?.addEventListener('click', () => {
+  document.getElementById('salas-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
 toggleSalaBtn.addEventListener('click', () => {
   togglePanel(salaPanel, alunoPanel);
 });
@@ -295,12 +372,20 @@ setupRealtime({
     if (['salas.changed', 'alunos.changed'].includes(event?.type)) {
       await carregarSalas();
     }
+
+    if (event?.type === 'calendario.changed') {
+      await carregarCalendarioResumo();
+    }
   },
-  onFallback: carregarSalas,
+  onFallback: async () => {
+    await carregarSalas();
+    await carregarCalendarioResumo();
+  },
   pollIntervalMs: 45000,
 });
 
 carregarSalas();
+carregarCalendarioResumo();
 resetResponsaveisForm();
 updateToggleButtons();
 }

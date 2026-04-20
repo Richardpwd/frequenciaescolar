@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS responsaveis (
   nome VARCHAR(120) NOT NULL,
   email VARCHAR(120) NOT NULL,
   telefone VARCHAR(25) NOT NULL,
+  data_nascimento DATE NULL,
   aluno_id INT NOT NULL,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_responsavel_aluno FOREIGN KEY (aluno_id) REFERENCES alunos(id) ON DELETE CASCADE,
@@ -55,6 +56,18 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_refresh_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
   CONSTRAINT uq_refresh_usuario UNIQUE (usuario_id)
+);
+
+CREATE TABLE IF NOT EXISTS calendario_eventos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  titulo VARCHAR(120) NOT NULL,
+  data_evento DATE NOT NULL,
+  tipo VARCHAR(30) NOT NULL,
+  descricao VARCHAR(255) NULL,
+  cor VARCHAR(20) NOT NULL DEFAULT '#16a34a',
+  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_calendario_data (data_evento)
 );
 
 -- Estrutura mantida sem dados iniciais.

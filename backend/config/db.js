@@ -89,6 +89,7 @@ function buildInitialMemoryState() {
     responsaveis: [],
     frequencias: [],
     refresh_tokens: [],
+    calendario_eventos: [],
     counters: {
       usuario: 0,
       sala: 0,
@@ -96,6 +97,7 @@ function buildInitialMemoryState() {
       responsavel: 0,
       frequencia: 0,
       refreshToken: 0,
+      calendarioEvento: 0,
     },
   };
 }
@@ -367,15 +369,21 @@ async function handleMemoryQuery(sql, params = []) {
     return [{ insertId: id, affectedRows: 1 }];
   }
 
-  if (normalizedSql.startsWith('select id, nome, email, telefone from responsaveis where aluno_id = ?')) {
+  if (normalizedSql.startsWith('select id, nome, email, telefone, data_nascimento from responsaveis where aluno_id = ?')) {
     const alunoId = Number(params[0]);
     const rows = sortByName(memoryState.responsaveis.filter((item) => item.aluno_id === alunoId))
-      .map((item) => ({ id: item.id, nome: item.nome, email: item.email, telefone: item.telefone }));
+      .map((item) => ({
+        id: item.id,
+        nome: item.nome,
+        email: item.email,
+        telefone: item.telefone,
+        data_nascimento: item.data_nascimento || null,
+      }));
     return [rows];
   }
 
-  if (normalizedSql.startsWith('insert into responsaveis (nome, email, telefone, aluno_id) values (?, ?, ?, ?)')) {
-    const [nome, email, telefone, alunoId] = params;
+  if (normalizedSql.startsWith('insert into responsaveis (nome, email, telefone, data_nascimento, aluno_id) values (?, ?, ?, ?, ?)')) {
+    const [nome, email, telefone, dataNascimento, alunoId] = params;
     const exists = memoryState.responsaveis.some(
       (item) => item.aluno_id === Number(alunoId) && item.email.toLowerCase() === String(email).toLowerCase(),
     );
@@ -385,7 +393,15 @@ async function handleMemoryQuery(sql, params = []) {
     }
 
     const id = ++memoryState.counters.responsavel;
-    memoryState.responsaveis.push({ id, nome, email, telefone, aluno_id: Number(alunoId), criado_em: nowIso() });
+    memoryState.responsaveis.push({
+      id,
+      nome,
+      email,
+      telefone,
+      data_nascimento: dataNascimento || null,
+      aluno_id: Number(alunoId),
+      criado_em: nowIso(),
+    });
     return [{ insertId: id, affectedRows: 1 }];
   }
 
@@ -544,6 +560,65 @@ async function handleMemoryQuery(sql, params = []) {
     return [{ insertId: id, affectedRows: 1 }];
   }
 
+  if (normalizedSql.startsWith('select id, titulo, data_evento, tipo, descricao, cor, criado_em, atualizado_em from calendario_eventos where data_evento between ? and ?')) {
+    const [inicio, fim] = params;
+    const rows = memoryState.calendario_eventos
+      .filter((item) => withinDateRange(item.data_evento, inicio, fim))
+      .sort((a, b) => {
+        const byDate = String(a.data_evento).localeCompare(String(b.data_evento));
+        return byDate || String(a.criado_em).localeCompare(String(b.criado_em));
+      })
+      .map((item) => ({ ...item }));
+    return [rows];
+  }
+
+  if (normalizedSql.startsWith('select id, titulo, data_evento, tipo, descricao, cor, criado_em, atualizado_em from calendario_eventos where id = ?')) {
+    const eventoId = Number(params[0]);
+    const item = memoryState.calendario_eventos.find((evento) => evento.id === eventoId);
+    return [[item ? { ...item } : undefined].filter(Boolean)];
+  }
+
+  if (normalizedSql.startsWith('insert into calendario_eventos (titulo, data_evento, tipo, descricao, cor) values (?, ?, ?, ?, ?)')) {
+    const [titulo, dataEvento, tipo, descricao, cor] = params;
+    const id = ++memoryState.counters.calendarioEvento;
+    const evento = {
+      id,
+      titulo,
+      data_evento: String(dataEvento),
+      tipo,
+      descricao: descricao || null,
+      cor,
+      criado_em: nowIso(),
+      atualizado_em: nowIso(),
+    };
+    memoryState.calendario_eventos.push(evento);
+    return [{ insertId: id, affectedRows: 1 }];
+  }
+
+  if (normalizedSql.startsWith('update calendario_eventos set titulo = ?, data_evento = ?, tipo = ?, descricao = ?, cor = ?, atualizado_em = current_timestamp where id = ?')) {
+    const [titulo, dataEvento, tipo, descricao, cor, eventoId] = params;
+    const existing = memoryState.calendario_eventos.find((item) => item.id === Number(eventoId));
+
+    if (!existing) {
+      return [{ affectedRows: 0 }];
+    }
+
+    existing.titulo = titulo;
+    existing.data_evento = String(dataEvento);
+    existing.tipo = tipo;
+    existing.descricao = descricao || null;
+    existing.cor = cor;
+    existing.atualizado_em = nowIso();
+    return [{ affectedRows: 1 }];
+  }
+
+  if (normalizedSql.startsWith('delete from calendario_eventos where id = ?')) {
+    const eventoId = Number(params[0]);
+    const before = memoryState.calendario_eventos.length;
+    memoryState.calendario_eventos = memoryState.calendario_eventos.filter((item) => item.id !== eventoId);
+    return [{ affectedRows: before - memoryState.calendario_eventos.length }];
+  }
+
   throw new Error(`[MemoryDB] Query nao suportada: ${normalizedSql}`);
 }
 
@@ -631,6 +706,14 @@ export async function testConnection() {
   }
 }
 
+async function ensureResponsaveisBirthdateColumn(connection) {
+  const [columns] = await connection.query("SHOW COLUMNS FROM responsaveis LIKE 'data_nascimento'");
+
+  if (!Array.isArray(columns) || columns.length === 0) {
+    await connection.query('ALTER TABLE responsaveis ADD COLUMN data_nascimento DATE NULL AFTER telefone');
+  }
+}
+
 export async function initializeDatabase(retries = 3, delayMs = 2000) {
   if (useInMemoryDb || dbMode === 'memory') {
     console.log('[DB] Ambiente iniciado com armazenamento em memoria.');
@@ -659,6 +742,7 @@ export async function initializeDatabase(retries = 3, delayMs = 2000) {
       const schemaPath = path.join(__dirname, '../database/schema.sql');
       const schemaSql = await fs.readFile(schemaPath, 'utf8');
       await connection.query(schemaSql);
+      await ensureResponsaveisBirthdateColumn(connection);
       return;
     } catch (err) {
       const errorMessage = formatDbError(err);

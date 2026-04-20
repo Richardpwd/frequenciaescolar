@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avance | Calendário Escolar</title>
+  <link rel="icon" href="/logo.jpeg" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="logo">
+          <img src="/logo.jpeg" alt="Logo Avance" class="logo-image" />
+          <div>
+            <span class="logo-name">Avance</span>
+            <small class="logo-tagline">Calendário escolar moderno e organizado</small>
+          </div>
+        </div>
+        <h1>Calendário escolar</h1>
+        <small>Bem-vindo, <strong id="usuario-nome"></strong></small>
+      </div>
+      <div class="topbar-actions">
+        <a href="/dashboard.html" class="btn-secondary btn-link">Dashboard</a>
+        <button id="add-event-btn" class="btn-primary">Adicionar evento</button>
+        <button id="add-holiday-btn" class="btn-secondary">Adicionar feriado</button>
+      </div>
+    </header>
+
+    <div id="alert-box" class="alert"></div>
+
+    <section class="card calendar-hero">
+      <div>
+        <p class="eyebrow">Planejamento escolar</p>
+        <h2>Organize feriados, reuniões, provas e eventos do mês.</h2>
+        <p class="hero-copy">Toque em um dia para criar uma marcação e mantenha a rotina da escola visível para toda a equipe.</p>
+      </div>
+      <div class="calendar-legend" id="calendar-legend"></div>
+    </section>
+
+    <section class="card action-hub">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Funções separadas</p>
+          <h2>Escolha rapidamente o que deseja fazer</h2>
+          <p class="auth-subtitle">Cada ação do calendário foi organizada em áreas claras para facilitar o uso na escola.</p>
+        </div>
+      </div>
+      <div class="action-grid">
+        <button id="quick-new-event-btn" class="action-card" type="button">
+          <strong>Novo evento</strong>
+          <span>Cadastrar reunião, prova ou observação</span>
+        </button>
+        <button id="quick-new-holiday-btn" class="action-card" type="button">
+          <strong>Novo feriado</strong>
+          <span>Registrar datas sem aula</span>
+        </button>
+        <button id="quick-today-btn" class="action-card" type="button">
+          <strong>Ir para hoje</strong>
+          <span>Voltar ao mês atual</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="calendar-layout">
+      <section class="card calendar-panel">
+        <div class="calendar-toolbar">
+          <div class="month-nav">
+            <button id="prev-month-btn" class="btn-secondary btn-small" type="button">← Mês anterior</button>
+            <h2 id="month-title">Mês atual</h2>
+            <button id="next-month-btn" class="btn-secondary btn-small" type="button">Próximo mês →</button>
+          </div>
+          <div class="calendar-toolbar-actions">
+            <button id="today-btn" class="btn-secondary btn-small" type="button">Hoje</button>
+          </div>
+        </div>
+
+        <div class="calendar-weekdays">
+          <span>Dom</span>
+          <span>Seg</span>
+          <span>Ter</span>
+          <span>Qua</span>
+          <span>Qui</span>
+          <span>Sex</span>
+          <span>Sáb</span>
+        </div>
+
+        <div id="calendar-grid" class="calendar-grid"></div>
+      </section>
+
+      <aside class="calendar-sidebar">
+        <section class="card sidebar-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Próximos eventos</p>
+              <h2>Agenda do mês</h2>
+            </div>
+          </div>
+          <div id="upcoming-events" class="upcoming-events"></div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <div id="calendar-modal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal-card card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Cadastro</p>
+          <h2 id="modal-title">Novo evento</h2>
+        </div>
+        <button id="close-modal-btn" class="btn-secondary btn-small" type="button">Fechar</button>
+      </div>
+
+      <form id="calendar-form" class="form-grid" novalidate>
+        <div class="form-group form-group-full modal-section-title">
+          <label for="evento-titulo">Título da marcação</label>
+          <input id="evento-titulo" type="text" maxlength="120" />
+        </div>
+
+        <div class="form-group">
+          <label for="evento-data">Data</label>
+          <input id="evento-data" type="date" />
+        </div>
+
+        <div class="form-group">
+          <label for="evento-tipo">Tipo</label>
+          <select id="evento-tipo">
+            <option value="evento">Evento escolar</option>
+            <option value="feriado">Feriado</option>
+            <option value="reuniao">Reunião</option>
+            <option value="prova">Prova</option>
+            <option value="conselho">Conselho de classe</option>
+            <option value="recesso">Recesso</option>
+            <option value="aula-especial">Aula especial</option>
+            <option value="observacao">Observação geral</option>
+          </select>
+        </div>
+
+        <div class="form-group form-group-full">
+          <label for="evento-descricao">Descrição opcional</label>
+          <input id="evento-descricao" type="text" maxlength="255" />
+        </div>
+
+        <div class="modal-actions form-group-full">
+          <button id="cancel-modal-btn" type="button" class="btn-secondary">Cancelar</button>
+          <button id="delete-event-btn" type="button" class="btn-danger hidden">Excluir</button>
+          <button id="save-event-btn" type="submit" class="btn-primary">Salvar marcação</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="/assets/js/calendario.js"></script>
+</body>
+</html>

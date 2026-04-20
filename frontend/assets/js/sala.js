@@ -73,10 +73,46 @@ function showAlert(message, type = 'error') {
 function formatMonthLabel(monthValue) {
   if (!monthValue) return '';
   try {
-    const date = new Date(`${monthValue}-01`);
+    const date = new Date(`${monthValue}-01T12:00:00`);
     return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   } catch {
     return monthValue;
+  }
+}
+
+function capitalizeText(value) {
+  if (!value) return '';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatAttendanceDate(dateValue) {
+  if (!dateValue) {
+    return {
+      principal: 'Data não informada',
+      complementar: '',
+    };
+  }
+
+  try {
+    const normalizedValue = /^\d{4}-\d{2}-\d{2}$/.test(dateValue)
+      ? `${dateValue}T12:00:00`
+      : dateValue;
+
+    const parsedDate = new Date(normalizedValue);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      throw new Error('Invalid date');
+    }
+
+    return {
+      principal: parsedDate.toLocaleDateString('pt-BR'),
+      complementar: capitalizeText(parsedDate.toLocaleDateString('pt-BR', { weekday: 'long' })),
+    };
+  } catch {
+    return {
+      principal: String(dateValue),
+      complementar: '',
+    };
   }
 }
 
@@ -215,7 +251,7 @@ function renderAlunoDetalhe(data) {
   alunoDetalheSummary.innerHTML = `
     <div class="mensal-summary-grid">
       <div><strong>Aluno:</strong> ${escapeHtml(uiState.selectedAlunoNome)}</div>
-      <div><strong>Relatório de:</strong> ${escapeHtml(formatMonthLabel(data.mes))}</div>
+      <div><strong>Mês selecionado:</strong> ${escapeHtml(formatMonthLabel(data.mes))}</div>
       <div><strong>Presenças:</strong> ${Number(data.totais.presentes || 0)}</div>
       <div><strong>Faltas:</strong> ${Number(data.totais.faltas || 0)}</div>
       <div><strong>Total de registros:</strong> ${Number(data.totais.registros || 0)}</div>
@@ -229,19 +265,32 @@ function renderAlunoDetalhe(data) {
     return;
   }
 
-  const rows = data.dias.map((item) => `
-    <tr>
-      <td data-label="Data">${escapeHtml(item.data_aula)}</td>
-      <td data-label="Status">${item.status === 'presente' ? 'Presente' : 'Falta'}</td>
-    </tr>
-  `).join('');
+  const rows = data.dias.map((item) => {
+    const dataFormatada = formatAttendanceDate(item.data_aula);
+    const statusLabel = item.status === 'presente' ? 'Presente' : 'Falta';
+    const statusClass = item.status === 'presente' ? 'is-presente' : 'is-falta';
+
+    return `
+      <tr>
+        <td data-label="Dia da aula">
+          <div class="mensal-date-cell">
+            <strong>${escapeHtml(dataFormatada.principal)}</strong>
+            ${dataFormatada.complementar ? `<small>${escapeHtml(dataFormatada.complementar)}</small>` : ''}
+          </div>
+        </td>
+        <td data-label="Status">
+          <span class="mensal-status-pill ${statusClass}">${statusLabel}</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   alunoDetalheList.innerHTML = `
     <div class="table-scroll">
       <table class="mensal-table">
         <thead>
           <tr>
-            <th>Data</th>
+            <th>Dia da aula</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -349,9 +398,17 @@ function createResponsavelCard(responsavel) {
   const telefone = document.createElement('span');
   telefone.textContent = responsavel.telefone;
 
+  const nascimento = document.createElement('span');
+  if (responsavel.data_nascimento) {
+    nascimento.textContent = `Nascimento: ${formatAttendanceDate(responsavel.data_nascimento).principal}`;
+  } else {
+    nascimento.textContent = 'Nascimento: Nao informado';
+  }
+
   card.appendChild(nome);
   card.appendChild(email);
   card.appendChild(telefone);
+  card.appendChild(nascimento);
 
   return card;
 }

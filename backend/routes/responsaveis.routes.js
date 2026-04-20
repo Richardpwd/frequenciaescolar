@@ -2,6 +2,7 @@ import { Router } from 'express';
 import pool from '../config/db.js';
 import {
   isSafeDisplayName,
+  isValidDate,
   isValidEmail,
   isValidPhone,
   normalizeEmail,
@@ -91,7 +92,7 @@ router.get('/aluno/:alunoId', async (req, res) => {
     }
 
     const [responsaveis] = await pool.query(
-      `SELECT id, nome, email, telefone
+      `SELECT id, nome, email, telefone, data_nascimento
        FROM responsaveis
        WHERE aluno_id = ?
        ORDER BY nome`,
@@ -112,12 +113,13 @@ router.post('/', async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     const nomeAluno = normalizeText(req.body?.nomeAluno, 120);
     const telefone = normalizePhone(req.body?.telefone);
+    const dataNascimento = normalizeText(req.body?.dataNascimento, 10);
 
-    if (!nomeResponsavel || !email || !telefone || (!alunoId && !nomeAluno)) {
-      return res.status(400).json({ message: 'Preencha todos os campos do responsavel (nome, email, telefone e alunoId ou nomeAluno).' });
+    if (!nomeResponsavel || !email || !telefone || !dataNascimento || (!alunoId && !nomeAluno)) {
+      return res.status(400).json({ message: 'Preencha todos os campos do responsavel (nome, email, telefone, data de nascimento e alunoId ou nomeAluno).' });
     }
 
-    if (!isSafeDisplayName(nomeResponsavel, { min: 2, max: 120 }) || !isValidEmail(email) || !isValidPhone(telefone)) {
+    if (!isSafeDisplayName(nomeResponsavel, { min: 2, max: 120 }) || !isValidEmail(email) || !isValidPhone(telefone) || !isValidDate(dataNascimento)) {
       return res.status(400).json({ message: 'Os dados do responsavel contem valores invalidos.' });
     }
 
@@ -141,9 +143,9 @@ router.post('/', async (req, res) => {
     }
 
     await pool.query(
-      `INSERT INTO responsaveis (nome, email, telefone, aluno_id)
-       VALUES (?, ?, ?, ?)`,
-      [nomeResponsavel, email, telefone, alunoIdFinal],
+      `INSERT INTO responsaveis (nome, email, telefone, data_nascimento, aluno_id)
+       VALUES (?, ?, ?, ?, ?)`,
+      [nomeResponsavel, email, telefone, dataNascimento, alunoIdFinal],
     );
 
     return res.status(201).json({ message: 'Responsavel cadastrado com sucesso.' });

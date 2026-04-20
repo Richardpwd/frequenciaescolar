@@ -3,6 +3,7 @@ import pool from '../config/db.js';
 import { broadcastRealtime } from '../realtime.js';
 import {
   isSafeDisplayName,
+  isValidDate,
   isValidEmail,
   isValidPhone,
   isValidTurno,
@@ -183,12 +184,13 @@ router.post('/:salaId/alunos', async (req, res) => {
       const nomeResponsavel = normalizeText(responsavel?.nome, 120);
       const email = normalizeEmail(responsavel?.email);
       const telefone = normalizePhone(responsavel?.telefone);
+      const dataNascimento = normalizeText(responsavel?.dataNascimento, 10);
 
-      if (!nomeResponsavel || !email || !telefone) {
-        return res.status(400).json({ message: 'Cada responsavel precisa ter nome, email e telefone.' });
+      if (!nomeResponsavel || !email || !telefone || !dataNascimento) {
+        return res.status(400).json({ message: 'Cada responsavel precisa ter nome, email, telefone e data de nascimento.' });
       }
 
-      if (!isSafeDisplayName(nomeResponsavel, { min: 2, max: 120 }) || !isValidEmail(email) || !isValidPhone(telefone)) {
+      if (!isSafeDisplayName(nomeResponsavel, { min: 2, max: 120 }) || !isValidEmail(email) || !isValidPhone(telefone) || !isValidDate(dataNascimento)) {
         return res.status(400).json({ message: 'Os dados do responsavel contem valores invalidos.' });
       }
 
@@ -198,7 +200,7 @@ router.post('/:salaId/alunos', async (req, res) => {
       }
 
       emailsNormalizados.add(emailKey);
-      responsaveisNormalizados.push({ nome: nomeResponsavel, email, telefone });
+      responsaveisNormalizados.push({ nome: nomeResponsavel, email, telefone, dataNascimento });
     }
 
     await connection.beginTransaction();
@@ -211,9 +213,9 @@ router.post('/:salaId/alunos', async (req, res) => {
 
     for (const responsavel of responsaveisNormalizados) {
       await connection.query(
-        `INSERT INTO responsaveis (nome, email, telefone, aluno_id)
-         VALUES (?, ?, ?, ?)`,
-        [responsavel.nome, responsavel.email, responsavel.telefone, result.insertId],
+        `INSERT INTO responsaveis (nome, email, telefone, data_nascimento, aluno_id)
+         VALUES (?, ?, ?, ?, ?)`,
+        [responsavel.nome, responsavel.email, responsavel.telefone, responsavel.dataNascimento, result.insertId],
       );
     }
 

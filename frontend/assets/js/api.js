@@ -177,3 +177,16 @@ export async function get(path) {
   });
 }
 
+export async function put(path, payload) {
+  return request(path, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function del(path) {
+  return request(path, {
+    method: 'DELETE',
+  });
+}
+

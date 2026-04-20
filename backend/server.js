@@ -12,6 +12,7 @@ import authRoutes from './routes/auth.routes.js';
 import salasRoutes from './routes/salas.routes.js';
 import frequenciaRoutes from './routes/frequencia.routes.js';
 import responsaveisRoutes from './routes/responsaveis.routes.js';
+import calendarioRoutes from './routes/calendario.routes.js';
 import { authenticateToken } from './middlewares/auth.middleware.js';
 import { attachRealtime } from './realtime.js';
 
@@ -195,6 +196,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/salas', authenticateToken, salasRoutes);
 app.use('/api/frequencia', authenticateToken, frequenciaRoutes);
 app.use('/api/responsaveis', authenticateToken, responsaveisRoutes);
+app.use('/api/calendario', authenticateToken, calendarioRoutes);
 
 app.get('/api', (_req, res) => {
   res.json({
@@ -210,6 +212,7 @@ app.get('/api', (_req, res) => {
         '/api/frequencia/sala/:salaId/historico?inicio=YYYY-MM-DD&fim=YYYY-MM-DD',
       ],
       responsaveis: ['/api/responsaveis', '/api/responsaveis/alunos', '/api/responsaveis/aluno/:alunoId'],
+      calendario: ['/api/calendario', '/api/calendario/:eventoId'],
     },
   });
 });
@@ -316,6 +319,21 @@ app.get('/api/docs', (_req, res) => {
       {
         method: 'GET',
         path: '/api/frequencia/sala/:salaId/data/:data',
+      },
+      {
+        method: 'GET',
+        path: '/api/calendario?mes=YYYY-MM',
+      },
+      {
+        method: 'POST',
+        path: '/api/calendario',
+        body: {
+          titulo: 'string',
+          data: 'YYYY-MM-DD',
+          tipo: 'feriado|reuniao|prova|evento|conselho|recesso|aula-especial|observacao',
+          descricao: 'string opcional',
+          cor: '#RRGGBB opcional',
+        },
       },
       {
         method: 'GET',

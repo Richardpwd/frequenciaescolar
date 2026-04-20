@@ -20,9 +20,13 @@
         </div>
         <h1 id="sala-titulo">Controle de Frequencia</h1>
       </div>
-      <div class="date-field">
+      <div class="date-field room-topbar-tools">
         <label for="data-aula">Data da aula</label>
         <input id="data-aula" type="date" />
+        <div class="room-link-actions">
+          <a href="/dashboard.html" class="btn-secondary btn-link">Dashboard</a>
+          <a href="/calendario.html" class="btn-secondary btn-link">Calendário</a>
+        </div>
       </div>
     </header>
 
@@ -68,7 +72,8 @@
       <div class="section-heading">
         <div>
           <p class="eyebrow">Detalhes do aluno</p>
-          <h2>Frequência individual mensal</h2>
+          <h2>Frequência individual no mês</h2>
+          <p class="section-note">Datas exibidas em formato dia/mês/ano com o dia da semana.</p>
         </div>
       </div>
       <div id="aluno-detalhe-summary" class="mensal-summary"></div>

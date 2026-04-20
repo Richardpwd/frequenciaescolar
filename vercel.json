@@ -4,6 +4,10 @@
   "cleanUrls": false,
   "rewrites": [
     {
+      "source": "/api",
+      "destination": "/api/[...all]"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/[...all]"
     },

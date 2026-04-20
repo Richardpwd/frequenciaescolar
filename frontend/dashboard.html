@@ -24,11 +24,40 @@
       <div class="topbar-actions">
         <button id="toggle-sala-btn" class="btn-primary">Cadastrar sala</button>
         <button id="toggle-aluno-btn" class="btn-primary">Cadastrar aluno</button>
+        <a href="/calendario.html" class="btn-secondary btn-link">Calendário</a>
         <button id="logout-btn" class="btn-secondary">Sair</button>
       </div>
     </header>
 
     <div id="alert-box" class="alert"></div>
+
+    <section class="card action-hub">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Ações rápidas</p>
+          <h2>Acesse os principais fluxos do sistema</h2>
+          <p class="auth-subtitle">Tudo no mesmo padrão visual da escola, com acesso rápido para o dia a dia.</p>
+        </div>
+      </div>
+      <div class="action-grid">
+        <button id="quick-sala-btn" class="action-card" type="button">
+          <strong>Nova sala</strong>
+          <span>Criar turma e organizar o turno</span>
+        </button>
+        <button id="quick-aluno-btn" class="action-card" type="button">
+          <strong>Novo aluno</strong>
+          <span>Registrar aluno e responsáveis</span>
+        </button>
+        <a href="/calendario.html" id="quick-calendario-btn" class="action-card action-card-link">
+          <strong>Calendário</strong>
+          <span>Feriados, provas e reuniões</span>
+        </a>
+        <button id="quick-chamada-btn" class="action-card" type="button">
+          <strong>Abrir chamada</strong>
+          <span>Ir direto para as turmas</span>
+        </button>
+      </div>
+    </section>
 
     <section class="card quick-guide">
       <div class="section-heading">
@@ -154,6 +183,17 @@
     </section>
 
     <section id="salas-grid" class="cards-grid"></section>
+
+    <section class="card quick-guide">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Agenda escolar</p>
+          <h2>Próximos eventos do calendário</h2>
+          <p class="auth-subtitle">Visualize rapidamente feriados, reuniões e provas do mês.</p>
+        </div>
+      </div>
+      <div id="calendar-preview" class="calendar-preview"></div>
+    </section>
   </main>
 
   <script type="module" src="/assets/js/dashboard.js"></script>
