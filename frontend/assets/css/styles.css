@@ -998,7 +998,7 @@ button:disabled {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 body.modal-open {
@@ -2207,11 +2207,15 @@ body.modal-open {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.36);
-  display: grid;
+  display: none;
   place-items: center;
   padding: 16px;
   z-index: 1000;
   pointer-events: auto;
+}
+
+.modal-overlay:not(.hidden) {
+  display: grid;
 }
 
 .modal-card {

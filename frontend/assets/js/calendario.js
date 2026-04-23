@@ -133,6 +133,67 @@ function isSameMonth(dateValue, monthValue) {
   return String(dateValue || '').startsWith(`${monthValue}-`);
 }
 
+async function listMonthItems(monthValue) {
+  try {
+    const data = await get(`/calendario?mes=${monthValue}`);
+    state.usingFallback = false;
+    return sortItems(normalizeItems(data));
+  } catch {
+    state.usingFallback = true;
+
+    if (!state.fallbackNotified) {
+      state.fallbackNotified = true;
+      showAlert(alertBox, 'Calendário em modo local temporário. A API principal não respondeu.', 'error');
+    }
+
+    return readLocalItems().filter((item) => isSameMonth(item.data_evento, monthValue));
+  }
+}
+
+async function createOrUpdateItem(payload) {
+  if (!state.usingFallback) {
+    try {
+      if (state.editingId) {
+        await put(`/calendario/${state.editingId}`, payload);
+      } else {
+        await post('/calendario', payload);
+      }
+      return;
+    } catch {
+      state.usingFallback = true;
+    }
+  }
+
+  const localItems = readLocalItems();
+
+  if (state.editingId) {
+    const updated = localItems.map((item) => (
+      Number(item.id) === Number(state.editingId)
+        ? { ...item, ...payload, id: Number(state.editingId) }
+        : item
+    ));
+    saveLocalItems(updated);
+    return;
+  }
+
+  const nextId = localItems.length > 0 ? Math.max(...localItems.map((item) => Number(item.id) || 0)) + 1 : 1;
+  saveLocalItems([...localItems, { id: nextId, ...payload }]);
+}
+
+async function removeItem(itemId) {
+  if (!state.usingFallback) {
+    try {
+      await del(`/calendario/${itemId}`);
+      return;
+    } catch {
+      state.usingFallback = true;
+    }
+  }
+
+  const items = readLocalItems().filter((item) => Number(item.id) !== Number(itemId));
+  saveLocalItems(items);
+}
+
 function getModalHeading(type = 'evento', isEditing = false) {
   if (type === 'feriado') {
     return isEditing ? 'Editar feriado' : 'Novo feriado';
@@ -166,6 +227,10 @@ function updateSummaryCards() {
 }
 
 function renderLegend() {
+  if (!legend) {
+    return;
+  }
+
   legend.innerHTML = Object.values(EVENT_META).map((meta) => `
     <span class="legend-pill" style="--event-color:${meta.color}">${meta.label}</span>
   `).join('');
