@@ -1,5 +1,5 @@
 import { del, get, post, put } from './api.js';
-import { getSessionUser, requireAuth, showAlert } from './ui.js';
+import { getLocalItem, getSessionUser, requireAuth, setLocalItem, showAlert } from './ui.js';
 
 requireAuth();
 
@@ -119,14 +119,14 @@ function sortItems(items) {
 
 function readLocalItems() {
   try {
-    return sortItems(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+    return sortItems(JSON.parse(getLocalItem(STORAGE_KEY) || '[]'));
   } catch {
     return [];
   }
 }
 
 function saveLocalItems(items) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sortItems(items)));
+  setLocalItem(STORAGE_KEY, JSON.stringify(sortItems(items)));
 }
 
 function isSameMonth(dateValue, monthValue) {

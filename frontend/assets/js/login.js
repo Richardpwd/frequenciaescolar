@@ -1,5 +1,5 @@
 import { post } from './api.js';
-import { SESSION_KEYS, showAlert } from './ui.js';
+import { SESSION_KEYS, setSessionItem, showAlert } from './ui.js';
 
 const form = document.getElementById('login-form');
 const alertBox = document.getElementById('alert-box');
@@ -12,9 +12,9 @@ form?.addEventListener('submit', async (event) => {
 
   try {
     const data = await post('/auth/login', { usuario, senha });
-    sessionStorage.setItem(SESSION_KEYS.user, JSON.stringify(data.usuario));
-    sessionStorage.setItem(SESSION_KEYS.token, data.token);
-    sessionStorage.setItem(SESSION_KEYS.refreshToken, data.refreshToken);
+    setSessionItem(SESSION_KEYS.user, JSON.stringify(data.usuario));
+    setSessionItem(SESSION_KEYS.token, data.token);
+    setSessionItem(SESSION_KEYS.refreshToken, data.refreshToken);
     window.location.href = '/dashboard.html';
   } catch (error) {
     showAlert(alertBox, error.message);

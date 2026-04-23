@@ -1,4 +1,9 @@
-import { clearSessionAndRedirect, SESSION_KEYS } from './ui.js';
+import {
+  clearSessionAndRedirect,
+  getSessionItem,
+  SESSION_KEYS,
+  setSessionItem,
+} from './ui.js';
 
 const LOCAL_API_BASE = 'http://localhost:3000/api';
 
@@ -60,7 +65,7 @@ async function fetchWithApiFallback(path, options = {}) {
 
 function buildHeaders() {
   const headers = { 'Content-Type': 'application/json' };
-  const token = sessionStorage.getItem(SESSION_KEYS.token);
+  const token = getSessionItem(SESSION_KEYS.token);
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -108,7 +113,7 @@ async function refreshAccessToken() {
     return refreshPromise;
   }
 
-  const refreshToken = sessionStorage.getItem(SESSION_KEYS.refreshToken);
+  const refreshToken = getSessionItem(SESSION_KEYS.refreshToken);
   if (!refreshToken) {
     throw new Error('Sessao expirada. Faca login novamente.');
   }
@@ -127,11 +132,11 @@ async function refreshAccessToken() {
     }
 
     const data = await response.json();
-    sessionStorage.setItem(SESSION_KEYS.token, data.token);
-    sessionStorage.setItem(SESSION_KEYS.refreshToken, data.refreshToken);
+    setSessionItem(SESSION_KEYS.token, data.token);
+    setSessionItem(SESSION_KEYS.refreshToken, data.refreshToken);
 
     if (data.usuario) {
-      sessionStorage.setItem(SESSION_KEYS.user, JSON.stringify(data.usuario));
+      setSessionItem(SESSION_KEYS.user, JSON.stringify(data.usuario));
     }
   })();
 
