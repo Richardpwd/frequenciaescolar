@@ -18,6 +18,7 @@ import { attachRealtime } from './realtime.js';
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
+const API_BASE_PATH = '/api';
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
@@ -164,8 +165,8 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 app.use(express.static(path.join(__dirname, '../public'), staticOptions));
 app.use(express.static(path.join(__dirname, '../frontend'), staticOptions));
-app.use('/api', generalLimiter);
-app.use('/api', (req, res, next) => {
+app.use(API_BASE_PATH, generalLimiter);
+app.use(API_BASE_PATH, (req, res, next) => {
   if (['POST', 'PUT', 'PATCH'].includes(req.method) && !req.is('application/json')) {
     return res.status(415).json({ message: 'Envie os dados da API em JSON.' });
   }
@@ -192,11 +193,24 @@ app.get('/favicon.ico', (_req, res) => {
   res.sendFile(path.join(__dirname, '../public/favicon.ico'));
 });
 
-app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/salas', authenticateToken, salasRoutes);
-app.use('/api/frequencia', authenticateToken, frequenciaRoutes);
-app.use('/api/responsaveis', authenticateToken, responsaveisRoutes);
-app.use('/api/calendario', authenticateToken, calendarioRoutes);
+const publicApiRoutes = [
+  { path: '/auth', handlers: [authLimiter, authRoutes] },
+];
+
+const protectedApiRoutes = [
+  { path: '/salas', router: salasRoutes },
+  { path: '/frequencia', router: frequenciaRoutes },
+  { path: '/responsaveis', router: responsaveisRoutes },
+  { path: '/calendario', router: calendarioRoutes },
+];
+
+for (const { path: routePath, handlers } of publicApiRoutes) {
+  app.use(`${API_BASE_PATH}${routePath}`, ...handlers);
+}
+
+for (const { path: routePath, router } of protectedApiRoutes) {
+  app.use(`${API_BASE_PATH}${routePath}`, authenticateToken, router);
+}
 
 app.get('/api', (_req, res) => {
   res.json({
@@ -363,7 +377,7 @@ app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/login.html'));
 });
 
-app.use('/api/*splat', (_req, res) => {
+app.use(`${API_BASE_PATH}/*splat`, (_req, res) => {
   res.status(404).json({ message: 'Endpoint nao encontrado.' });
 });
 

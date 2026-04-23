@@ -2,8 +2,6 @@
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
-const bcrypt = require('bcrypt');
-const sqlite3 = require('sqlite3').verbose();
 const SQLiteStore = require('connect-sqlite3')(session);
 const app = express();
 

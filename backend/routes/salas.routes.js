@@ -17,11 +17,24 @@ import {
 
 const router = Router();
 
+function isMetaRequested(value) {
+  return String(value || '').toLowerCase() === 'true';
+}
+
+function buildListMeta({ total, pagination, count }) {
+  return {
+    total,
+    page: pagination?.page || 1,
+    limit: pagination?.limit || count || 0,
+    hasNextPage: pagination ? pagination.offset + count < total : false,
+  };
+}
+
 router.get('/', async (req, res) => {
   try {
     const search = sanitizeSearchTerm(req.query.search, 60);
     const turno = normalizeText(req.query.turno, 30);
-    const includeMeta = String(req.query.includeMeta || '').toLowerCase() === 'true';
+    const includeMeta = isMetaRequested(req.query.includeMeta);
     const pagination = parsePagination(req.query);
     const params = [];
     const where = [];
@@ -69,12 +82,7 @@ router.get('/', async (req, res) => {
 
     return res.json({
       items: salas,
-      meta: {
-        total,
-        page: pagination?.page || 1,
-        limit: pagination?.limit || salas.length || 0,
-        hasNextPage: pagination ? pagination.offset + salas.length < total : false,
-      },
+      meta: buildListMeta({ total, pagination, count: salas.length }),
     });
 
   } catch (error) {
@@ -258,7 +266,7 @@ router.get('/:salaId/alunos', async (req, res) => {
   try {
     const salaId = parsePositiveInt(req.params.salaId);
     const search = sanitizeSearchTerm(req.query.search, 60);
-    const includeMeta = String(req.query.includeMeta || '').toLowerCase() === 'true';
+    const includeMeta = isMetaRequested(req.query.includeMeta);
     const pagination = parsePagination(req.query);
 
     if (!salaId) {
@@ -309,20 +317,13 @@ router.get('/:salaId/alunos', async (req, res) => {
 
     return res.json({
       items: alunos,
-      meta: {
-        total,
-        page: pagination?.page || 1,
-        limit: pagination?.limit || alunos.length || 0,
-        hasNextPage: pagination ? pagination.offset + alunos.length < total : false,
-      },
+      meta: buildListMeta({ total, pagination, count: alunos.length }),
     });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erro ao buscar alunos da sala.' });
   }
 });
-
-export default router;
 
 // Renomear sala
 router.put('/:salaId', async (req, res) => {
@@ -343,7 +344,7 @@ router.put('/:salaId', async (req, res) => {
 
     const [result] = await pool.query(
       'UPDATE salas SET nome = ?, turno = ? WHERE id = ?',
-      [nome, turno, salaId]
+      [nome, turno, salaId],
     );
 
     if (result.affectedRows === 0) {
@@ -388,3 +389,5 @@ router.delete('/:salaId', async (req, res) => {
     return res.status(500).json({ message: 'Erro ao excluir sala.' });
   }
 });
+
+export default router;
