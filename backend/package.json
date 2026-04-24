@@ -2,6 +2,7 @@
   "name": "avance-apoio-escolar-backend",
   "version": "1.0.0",
   "description": "Backend para Avance - Apoio Escolar",
+  "type": "module",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
