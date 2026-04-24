@@ -16,7 +16,6 @@ import calendarioRoutes from './routes/calendario.routes.js';
 import { authenticateToken } from './middlewares/auth.middleware.js';
 import { attachRealtime } from './realtime.js';
 
-const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const API_BASE_PATH = '/api';
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
@@ -69,6 +68,7 @@ validateSecret('JWT_REFRESH_SECRET', JWT_REFRESH_SECRET);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function configureApp(app) {
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
@@ -394,6 +394,15 @@ app.use((err, _req, res, next) => {
     res.status(status).json({ message });
   }
 });
+}
+
+function createApp() {
+  const app = express();
+  configureApp(app);
+  return app;
+}
+
+const app = createApp();
 
 let databaseInitPromise = null;
 
@@ -408,16 +417,18 @@ async function ensureDatabaseReady() {
   return databaseInitPromise;
 }
 
-async function startServer() {
+async function startServer(appInstance = app, port = PORT) {
   try {
     await ensureDatabaseReady();
 
-    const server = http.createServer(app);
+    const server = http.createServer(appInstance);
     attachRealtime(server);
 
-    server.listen(PORT, () => {
-      console.log(`Servidor Avance ativo em http://localhost:${PORT}`);
+    server.listen(port, () => {
+      console.log(`Servidor Avance ativo em http://localhost:${port}`);
     });
+
+    return server;
   } catch (error) {
     console.error('Falha ao inicializar banco de dados:', error.message);
     process.exit(1);
@@ -430,4 +441,5 @@ if (isDirectExecution) {
   startServer();
 }
 
+export { createApp, startServer };
 export default app;
