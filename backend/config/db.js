@@ -304,6 +304,34 @@ async function handleMemoryQuery(sql, params = []) {
     return [{ insertId: id, affectedRows: 1 }];
   }
 
+  if (normalizedSql.startsWith('update salas set nome = ?, turno = ? where id = ?')) {
+    const [nome, turno, salaIdValue] = params;
+    const salaId = Number(salaIdValue);
+    const sala = memoryState.salas.find((item) => item.id === salaId);
+
+    if (!sala) {
+      return [{ affectedRows: 0 }];
+    }
+
+    sala.nome = nome;
+    sala.turno = turno;
+    sala.atualizado_em = nowIso();
+    return [{ affectedRows: 1 }];
+  }
+
+  if (normalizedSql.startsWith('delete from salas where id = ?')) {
+    const salaId = Number(params[0]);
+    const before = memoryState.salas.length;
+    memoryState.salas = memoryState.salas.filter((item) => item.id !== salaId);
+
+    if (memoryState.salas.length === before) {
+      return [{ affectedRows: 0 }];
+    }
+
+    memoryState.alunos = memoryState.alunos.filter((item) => item.sala_id !== salaId);
+    return [{ affectedRows: 1 }];
+  }
+
   if (normalizedSql.startsWith('select count(*) as total from alunos')) {
     let alunos = [...memoryState.alunos];
     let cursor = 0;

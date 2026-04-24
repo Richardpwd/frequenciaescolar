@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { body, query } from 'express-validator';
 import pool from '../config/db.js';
+import { validateRequest } from '../middlewares/validation.middleware.js';
 import { broadcastRealtime } from '../realtime.js';
 import {
   isSafeDisplayName,
@@ -14,8 +16,29 @@ import {
   parsePositiveInt,
   sanitizeSearchTerm,
 } from '../utils/validation.js';
+import {
+  paginationValidators,
+  positiveIdParamValidator,
+  sortByValidator,
+} from '../validators/common.validators.js';
 
 const router = Router();
+
+const SORTABLE_SALAS_FIELDS = {
+  id: 's.id',
+  nome: 's.nome',
+  turno: 's.turno',
+  totalAlunos: 'total_alunos',
+};
+
+const SORTABLE_ALUNOS_FIELDS = {
+  id: 'id',
+  nome: 'nome',
+};
+
+function resolveSortField(sortableFields, sortBy, fallback) {
+  return sortableFields[sortBy] || fallback;
+}
 
 function isMetaRequested(value) {
   return String(value || '').toLowerCase() === 'true';
@@ -30,12 +53,24 @@ function buildListMeta({ total, pagination, count }) {
   };
 }
 
-router.get('/', async (req, res) => {
+router.get(
+  '/',
+  [
+    ...paginationValidators,
+    query('search').optional().isString().isLength({ max: 60 }).withMessage('search deve ter no maximo 60 caracteres.'),
+    query('turno').optional().isString().isLength({ max: 30 }).withMessage('turno deve ter no maximo 30 caracteres.'),
+    sortByValidator(Object.keys(SORTABLE_SALAS_FIELDS)),
+    validateRequest,
+  ],
+  async (req, res) => {
   try {
     const search = sanitizeSearchTerm(req.query.search, 60);
     const turno = normalizeText(req.query.turno, 30);
     const includeMeta = isMetaRequested(req.query.includeMeta);
     const pagination = parsePagination(req.query);
+    const sortBy = String(req.query.sortBy || 'nome');
+    const sortOrder = String(req.query.order || 'asc').toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const sortField = resolveSortField(SORTABLE_SALAS_FIELDS, sortBy, SORTABLE_SALAS_FIELDS.nome);
     const params = [];
     const where = [];
 
@@ -71,7 +106,7 @@ router.get('/', async (req, res) => {
        LEFT JOIN alunos a ON a.sala_id = s.id
        ${whereSql}
        GROUP BY s.id
-       ORDER BY s.nome
+       ORDER BY ${sortField} ${sortOrder}
        ${paginationSql}`,
       listParams,
     );
@@ -91,7 +126,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:salaId', async (req, res) => {
+router.get('/:salaId', [positiveIdParamValidator('salaId', 'salaId'), validateRequest], async (req, res) => {
   try {
     const salaId = parsePositiveInt(req.params.salaId);
 
@@ -120,7 +155,14 @@ router.get('/:salaId', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post(
+  '/',
+  [
+    body('nome').trim().notEmpty().withMessage('nome e obrigatorio.'),
+    body('turno').trim().notEmpty().withMessage('turno e obrigatorio.'),
+    validateRequest,
+  ],
+  async (req, res) => {
   try {
     const nome = normalizeText(req.body?.nome, 80);
     const turno = normalizeText(req.body?.turno, 30);
@@ -155,7 +197,15 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.post('/:salaId/alunos', async (req, res) => {
+router.post(
+  '/:salaId/alunos',
+  [
+    positiveIdParamValidator('salaId', 'salaId'),
+    body('nome').trim().notEmpty().withMessage('nome do aluno e obrigatorio.'),
+    body('responsaveis').optional().isArray().withMessage('responsaveis deve ser um array.'),
+    validateRequest,
+  ],
+  async (req, res) => {
   let connection;
   let transactionStarted = false;
 
@@ -262,12 +312,24 @@ router.post('/:salaId/alunos', async (req, res) => {
   }
 });
 
-router.get('/:salaId/alunos', async (req, res) => {
+router.get(
+  '/:salaId/alunos',
+  [
+    positiveIdParamValidator('salaId', 'salaId'),
+    ...paginationValidators,
+    query('search').optional().isString().isLength({ max: 60 }).withMessage('search deve ter no maximo 60 caracteres.'),
+    sortByValidator(Object.keys(SORTABLE_ALUNOS_FIELDS)),
+    validateRequest,
+  ],
+  async (req, res) => {
   try {
     const salaId = parsePositiveInt(req.params.salaId);
     const search = sanitizeSearchTerm(req.query.search, 60);
     const includeMeta = isMetaRequested(req.query.includeMeta);
     const pagination = parsePagination(req.query);
+    const sortBy = String(req.query.sortBy || 'nome');
+    const sortOrder = String(req.query.order || 'asc').toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const sortField = resolveSortField(SORTABLE_ALUNOS_FIELDS, sortBy, SORTABLE_ALUNOS_FIELDS.nome);
 
     if (!salaId) {
       return res.status(400).json({ message: 'Sala invalida.' });
@@ -306,7 +368,7 @@ router.get('/:salaId/alunos', async (req, res) => {
       `SELECT id, nome
        FROM alunos
        ${whereSql}
-       ORDER BY nome
+       ORDER BY ${sortField} ${sortOrder}
        ${paginationSql}`,
       listParams,
     );
@@ -326,7 +388,15 @@ router.get('/:salaId/alunos', async (req, res) => {
 });
 
 // Renomear sala
-router.put('/:salaId', async (req, res) => {
+router.put(
+  '/:salaId',
+  [
+    positiveIdParamValidator('salaId', 'salaId'),
+    body('nome').trim().notEmpty().withMessage('nome e obrigatorio.'),
+    body('turno').trim().notEmpty().withMessage('turno e obrigatorio.'),
+    validateRequest,
+  ],
+  async (req, res) => {
   try {
     const salaId = parsePositiveInt(req.params.salaId);
     const nome = normalizeText(req.body?.nome, 80);
@@ -366,7 +436,7 @@ router.put('/:salaId', async (req, res) => {
 });
 
 // Excluir sala
-router.delete('/:salaId', async (req, res) => {
+router.delete('/:salaId', [positiveIdParamValidator('salaId', 'salaId'), validateRequest], async (req, res) => {
   try {
     const salaId = parsePositiveInt(req.params.salaId);
     if (!salaId) {
@@ -383,7 +453,7 @@ router.delete('/:salaId', async (req, res) => {
       salaId,
     });
 
-    return res.json({ message: 'Sala excluída com sucesso.' });
+    return res.status(204).send();
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erro ao excluir sala.' });

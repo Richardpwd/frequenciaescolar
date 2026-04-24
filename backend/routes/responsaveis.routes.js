@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { body, query } from 'express-validator';
 import pool from '../config/db.js';
+import { validateRequest } from '../middlewares/validation.middleware.js';
 import {
   isSafeDisplayName,
   isValidDate,
@@ -12,15 +14,41 @@ import {
   parsePositiveInt,
   sanitizeSearchTerm,
 } from '../utils/validation.js';
+import {
+  paginationValidators,
+  positiveIdParamValidator,
+  sortByValidator,
+} from '../validators/common.validators.js';
 
 const router = Router();
 
-router.get('/alunos', async (req, res) => {
+const SORTABLE_ALUNOS_FIELDS = {
+  id: 'id',
+  nome: 'nome',
+};
+
+function resolveSortField(sortableFields, sortBy, fallback) {
+  return sortableFields[sortBy] || fallback;
+}
+
+router.get(
+  '/alunos',
+  [
+    ...paginationValidators,
+    query('salaId').optional().isInt({ min: 1 }).withMessage('salaId deve ser um inteiro maior que 0.'),
+    query('search').optional().isString().isLength({ max: 60 }).withMessage('search deve ter no maximo 60 caracteres.'),
+    sortByValidator(Object.keys(SORTABLE_ALUNOS_FIELDS)),
+    validateRequest,
+  ],
+  async (req, res) => {
   try {
     const salaId = parsePositiveInt(req.query.salaId);
     const search = sanitizeSearchTerm(req.query.search, 60);
     const includeMeta = String(req.query.includeMeta || '').toLowerCase() === 'true';
     const pagination = parsePagination(req.query);
+    const sortBy = String(req.query.sortBy || 'nome');
+    const sortOrder = String(req.query.order || 'asc').toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const sortField = resolveSortField(SORTABLE_ALUNOS_FIELDS, sortBy, SORTABLE_ALUNOS_FIELDS.nome);
 
     const where = [];
     const params = [];
@@ -54,7 +82,7 @@ router.get('/alunos', async (req, res) => {
       `SELECT id, nome
        FROM alunos
        ${whereSql}
-       ORDER BY nome
+       ORDER BY ${sortField} ${sortOrder}
        ${paginationSql}`,
       listParams,
     );
@@ -78,7 +106,7 @@ router.get('/alunos', async (req, res) => {
   }
 });
 
-router.get('/aluno/:alunoId', async (req, res) => {
+router.get('/aluno/:alunoId', [positiveIdParamValidator('alunoId', 'alunoId'), validateRequest], async (req, res) => {
   try {
     const alunoId = parsePositiveInt(req.params.alunoId);
 
@@ -106,7 +134,18 @@ router.get('/aluno/:alunoId', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post(
+  '/',
+  [
+    body('alunoId').optional().isInt({ min: 1 }).withMessage('alunoId deve ser um inteiro maior que 0.'),
+    body('nomeResponsavel').trim().notEmpty().withMessage('nomeResponsavel e obrigatorio.'),
+    body('email').trim().notEmpty().withMessage('email e obrigatorio.'),
+    body('telefone').trim().notEmpty().withMessage('telefone e obrigatorio.'),
+    body('dataNascimento').trim().notEmpty().withMessage('dataNascimento e obrigatoria.'),
+    body('nomeAluno').if(body('alunoId').not().exists()).trim().notEmpty().withMessage('nomeAluno e obrigatorio quando alunoId nao for informado.'),
+    validateRequest,
+  ],
+  async (req, res) => {
   try {
     const alunoId = parsePositiveInt(req.body?.alunoId);
     const nomeResponsavel = normalizeText(req.body?.nomeResponsavel, 120);

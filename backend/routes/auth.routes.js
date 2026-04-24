@@ -1,8 +1,10 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import { body } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
+import { validateRequest } from '../middlewares/validation.middleware.js';
 import {
   isSafeDisplayName,
   isValidPassword,
@@ -11,6 +13,29 @@ import {
 } from '../utils/validation.js';
 
 const router = Router();
+
+const registerValidators = [
+  body('nome').trim().notEmpty().withMessage('nome e obrigatorio.'),
+  body('usuario').trim().notEmpty().withMessage('usuario e obrigatorio.'),
+  body('senha').isString().notEmpty().withMessage('senha e obrigatoria.'),
+  validateRequest,
+];
+
+const loginValidators = [
+  body('usuario').trim().notEmpty().withMessage('usuario e obrigatorio.'),
+  body('senha').isString().notEmpty().withMessage('senha e obrigatoria.'),
+  validateRequest,
+];
+
+const tokenValidators = [
+  body('refreshToken').isString().trim().notEmpty().withMessage('refreshToken e obrigatorio.'),
+  validateRequest,
+];
+
+const forgotPasswordValidators = [
+  body('usuario').trim().notEmpty().withMessage('usuario e obrigatorio.'),
+  validateRequest,
+];
 
 router.get('/', (_req, res) => {
   return res.json({
@@ -75,7 +100,7 @@ router.use((_req, res, next) => {
   next();
 });
 
-router.post('/register', async (req, res) => {
+router.post('/register', registerValidators, async (req, res) => {
   try {
     const { nome, usuario, senha } = req.body;
     const nomeNormalizado = normalizeText(nome, 120);
@@ -119,7 +144,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginValidators, async (req, res) => {
   try {
     const { usuario, senha } = req.body;
     const usuarioNormalizado = normalizeText(usuario, 50);
@@ -172,7 +197,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', forgotPasswordValidators, async (req, res) => {
   const usuario = normalizeText(req.body?.usuario, 50);
 
   if (!usuario) {
@@ -182,7 +207,7 @@ router.post('/forgot-password', async (req, res) => {
   return res.json({ message: 'Solicitacao recebida. Procure a secretaria do apoio escolar Avance.' });
 });
 
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', tokenValidators, async (req, res) => {
   try {
     const refreshToken = String(req.body?.refreshToken || '').trim();
 
@@ -247,7 +272,7 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-router.post('/logout', async (req, res) => {
+router.post('/logout', tokenValidators, async (req, res) => {
   try {
     const refreshToken = String(req.body?.refreshToken || '').trim();
 

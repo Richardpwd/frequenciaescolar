@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { body, param, query } from 'express-validator';
 import pool from '../config/db.js';
+import { validateRequest } from '../middlewares/validation.middleware.js';
 import { broadcastRealtime } from '../realtime.js';
 import {
   getMonthDateRange,
@@ -57,7 +59,13 @@ function buildPayload(body = {}) {
   return { titulo, data, tipo, descricao, cor };
 }
 
-router.get('/', async (req, res) => {
+router.get(
+  '/',
+  [
+    query('mes').optional().matches(/^[0-9]{4}-[0-9]{2}$/).withMessage('mes deve estar no formato YYYY-MM.'),
+    validateRequest,
+  ],
+  async (req, res) => {
   try {
     const mes = normalizeText(req.query.mes, 7) || new Date().toISOString().slice(0, 7);
 
@@ -82,7 +90,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:eventoId', async (req, res) => {
+router.get('/:eventoId', [param('eventoId').isInt({ min: 1 }).withMessage('eventoId deve ser um inteiro maior que 0.'), validateRequest], async (req, res) => {
   try {
     const eventoId = parsePositiveInt(req.params.eventoId);
 
@@ -109,7 +117,15 @@ router.get('/:eventoId', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post(
+  '/',
+  [
+    body('titulo').trim().notEmpty().withMessage('titulo e obrigatorio.'),
+    body('data').trim().notEmpty().withMessage('data e obrigatoria.'),
+    body('tipo').trim().notEmpty().withMessage('tipo e obrigatorio.'),
+    validateRequest,
+  ],
+  async (req, res) => {
   try {
     const payload = buildPayload(req.body);
 
@@ -148,7 +164,16 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:eventoId', async (req, res) => {
+router.put(
+  '/:eventoId',
+  [
+    param('eventoId').isInt({ min: 1 }).withMessage('eventoId deve ser um inteiro maior que 0.'),
+    body('titulo').trim().notEmpty().withMessage('titulo e obrigatorio.'),
+    body('data').trim().notEmpty().withMessage('data e obrigatoria.'),
+    body('tipo').trim().notEmpty().withMessage('tipo e obrigatorio.'),
+    validateRequest,
+  ],
+  async (req, res) => {
   try {
     const eventoId = parsePositiveInt(req.params.eventoId);
     const payload = buildPayload(req.body);
@@ -194,7 +219,7 @@ router.put('/:eventoId', async (req, res) => {
   }
 });
 
-router.delete('/:eventoId', async (req, res) => {
+router.delete('/:eventoId', [param('eventoId').isInt({ min: 1 }).withMessage('eventoId deve ser um inteiro maior que 0.'), validateRequest], async (req, res) => {
   try {
     const eventoId = parsePositiveInt(req.params.eventoId);
 
@@ -213,7 +238,7 @@ router.delete('/:eventoId', async (req, res) => {
       eventoId,
     });
 
-    return res.json({ message: 'Evento removido com sucesso.' });
+    return res.status(204).send();
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erro ao remover evento do calendario.' });

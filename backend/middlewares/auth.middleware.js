@@ -4,18 +4,27 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 export function authenticateToken(req, res, next) {
   if (!JWT_SECRET) {
-    return res.status(500).json({ message: 'Configuracao de autenticacao indisponivel.' });
+    return res.status(500).json({
+      message: 'Configuracao de autenticacao indisponivel.',
+      errors: [{ code: 'AUTH_CONFIG_MISSING' }],
+    });
   }
   const authHeader = String(req.headers.authorization || '');
 
   if (!authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Token de acesso ausente.' });
+    return res.status(401).json({
+      message: 'Token de acesso ausente.',
+      errors: [{ code: 'AUTH_TOKEN_MISSING' }],
+    });
   }
 
   const token = authHeader.slice(7).trim();
 
   if (!token) {
-    return res.status(401).json({ message: 'Token de acesso invalido.' });
+    return res.status(401).json({
+      message: 'Token de acesso invalido.',
+      errors: [{ code: 'AUTH_TOKEN_INVALID' }],
+    });
   }
 
   try {
@@ -27,6 +36,9 @@ export function authenticateToken(req, res, next) {
     };
     return next();
   } catch {
-    return res.status(401).json({ message: 'Token expirado ou invalido.' });
+    return res.status(401).json({
+      message: 'Token expirado ou invalido.',
+      errors: [{ code: 'AUTH_TOKEN_EXPIRED_OR_INVALID' }],
+    });
   }
 }

@@ -4,8 +4,10 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import http from 'node:http';
+import { createRequire } from 'node:module';
 import process from 'node:process';
 import path from 'path';
+import swaggerUi from 'swagger-ui-express';
 import { fileURLToPath } from 'url';
 import { dbMode, initializeDatabase, testConnection } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
@@ -13,15 +15,22 @@ import salasRoutes from './routes/salas.routes.js';
 import frequenciaRoutes from './routes/frequencia.routes.js';
 import responsaveisRoutes from './routes/responsaveis.routes.js';
 import calendarioRoutes from './routes/calendario.routes.js';
+import { applyApiResponseEnvelope } from './middlewares/api-response.middleware.js';
 import { authenticateToken } from './middlewares/auth.middleware.js';
 import { attachRealtime } from './realtime.js';
 
 const PORT = Number(process.env.PORT || 3000);
 const API_BASE_PATH = '/api';
+const API_VERSION = 'v1';
+const API_V1_BASE_PATH = `${API_BASE_PATH}/${API_VERSION}`;
+const ENABLE_LEGACY_API = process.env.ENABLE_LEGACY_API !== 'false';
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const isProduction = process.env.NODE_ENV === 'production';
+
+const require = createRequire(import.meta.url);
+const openApiSpec = require('./docs/openapi.json');
 
 function isLocalDevelopmentOrigin(origin = '') {
   try {
@@ -60,6 +69,23 @@ function validateSecret(secretName, secretValue) {
   if (!isProduction && (secretValue.length < 24 || looksLikePlaceholder)) {
     console.warn(`[Security] ${secretName} is using a weak or placeholder value. Replace it before publishing.`);
   }
+}
+
+function buildRateLimitHandler(defaultMessage) {
+  return (req, res, _next, options) => {
+    const retryAfterSeconds = Number.isFinite(options.windowMs)
+      ? Math.ceil(options.windowMs / 1000)
+      : null;
+
+    return res.status(options.statusCode).json({
+      message: defaultMessage,
+      errors: [{
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfterSeconds,
+        path: req.originalUrl,
+      }],
+    });
+  };
 }
 
 validateSecret('JWT_SECRET', JWT_SECRET);
@@ -102,7 +128,9 @@ const corsOptions = {
       || (!isProduction && isLocalDevelopmentOrigin(origin))) {
       return callback(null, true);
     }
-    return callback(new Error('CORS policy does not allow this origin.'));
+    const error = new Error('CORS policy does not allow this origin.');
+    error.status = 403;
+    return callback(error);
   },
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
   allowedHeaders: ['Authorization', 'Content-Type'],
@@ -114,7 +142,7 @@ const generalLimiter = rateLimit({
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Muitas requisições. Tente novamente mais tarde.' },
+  handler: buildRateLimitHandler('Muitas requisicoes. Tente novamente mais tarde.'),
 });
 
 const authLimiter = rateLimit({
@@ -122,7 +150,7 @@ const authLimiter = rateLimit({
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Muitas tentativas de autenticação. Tente novamente mais tarde.' },
+  handler: buildRateLimitHandler('Muitas tentativas de autenticacao. Tente novamente mais tarde.'),
 });
 
 const staticOptions = {
@@ -205,159 +233,67 @@ const protectedApiRoutes = [
 ];
 
 for (const { path: routePath, handlers } of publicApiRoutes) {
-  app.use(`${API_BASE_PATH}${routePath}`, ...handlers);
+  if (ENABLE_LEGACY_API) {
+    app.use(`${API_BASE_PATH}${routePath}`, ...handlers);
+  }
+
+  app.use(`${API_V1_BASE_PATH}${routePath}`, applyApiResponseEnvelope, ...handlers);
 }
 
 for (const { path: routePath, router } of protectedApiRoutes) {
-  app.use(`${API_BASE_PATH}${routePath}`, authenticateToken, router);
+  if (ENABLE_LEGACY_API) {
+    app.use(`${API_BASE_PATH}${routePath}`, authenticateToken, router);
+  }
+
+  app.use(`${API_V1_BASE_PATH}${routePath}`, applyApiResponseEnvelope, authenticateToken, router);
 }
 
-app.get('/api', (_req, res) => {
+app.use(
+  `${API_V1_BASE_PATH}/docs`,
+  applyApiResponseEnvelope,
+  (req, res, next) => {
+    res.locals.skipApiEnvelope = true;
+    next();
+  },
+  swaggerUi.serve,
+  swaggerUi.setup(openApiSpec, {
+    explorer: true,
+    customSiteTitle: 'API Frequencia Avance - OpenAPI',
+  }),
+);
+
+if (ENABLE_LEGACY_API) {
+  app.use(
+    `${API_BASE_PATH}/docs`,
+    (req, res, next) => {
+      res.locals.skipApiEnvelope = true;
+      next();
+    },
+    swaggerUi.serve,
+    swaggerUi.setup(openApiSpec, {
+      explorer: true,
+      customSiteTitle: 'API Frequencia Avance - OpenAPI',
+    }),
+  );
+}
+
+app.get(API_BASE_PATH, (_req, res) => {
   res.json({
     name: 'API Sistema de Frequencia Avance',
-    version: '1.0.0',
-    docs: '/api/docs',
+    version: API_VERSION,
+    docs: `${API_V1_BASE_PATH}/docs`,
+    legacy: ENABLE_LEGACY_API ? API_BASE_PATH : null,
     endpoints: {
-      auth: ['/api/auth/register', '/api/auth/login', '/api/auth/forgot-password', '/api/auth/logout'],
-      salas: ['/api/salas', '/api/salas/:salaId', '/api/salas/:salaId/alunos', '/api/salas/:salaId/alunos (POST)'],
+      auth: [`${API_V1_BASE_PATH}/auth/register`, `${API_V1_BASE_PATH}/auth/login`, `${API_V1_BASE_PATH}/auth/forgot-password`, `${API_V1_BASE_PATH}/auth/logout`],
+      salas: [`${API_V1_BASE_PATH}/salas`, `${API_V1_BASE_PATH}/salas/:salaId`, `${API_V1_BASE_PATH}/salas/:salaId/alunos`, `${API_V1_BASE_PATH}/salas/:salaId/alunos (POST)`],
       frequencia: [
-        '/api/frequencia',
-        '/api/frequencia/sala/:salaId/data/:data',
-        '/api/frequencia/sala/:salaId/historico?inicio=YYYY-MM-DD&fim=YYYY-MM-DD',
+        `${API_V1_BASE_PATH}/frequencia`,
+        `${API_V1_BASE_PATH}/frequencia/sala/:salaId/data/:data`,
+        `${API_V1_BASE_PATH}/frequencia/sala/:salaId/historico?inicio=YYYY-MM-DD&fim=YYYY-MM-DD`,
       ],
-      responsaveis: ['/api/responsaveis', '/api/responsaveis/alunos', '/api/responsaveis/aluno/:alunoId'],
-      calendario: ['/api/calendario', '/api/calendario/:eventoId'],
+      responsaveis: [`${API_V1_BASE_PATH}/responsaveis`, `${API_V1_BASE_PATH}/responsaveis/alunos`, `${API_V1_BASE_PATH}/responsaveis/aluno/:alunoId`],
+      calendario: [`${API_V1_BASE_PATH}/calendario`, `${API_V1_BASE_PATH}/calendario/:eventoId`],
     },
-  });
-});
-
-app.get('/api/docs', (_req, res) => {
-  res.json({
-    title: 'Documentacao API Frequencia Avance',
-    baseUrl: '/api',
-    auth: {
-      type: 'Bearer Token (JWT)',
-      header: 'Authorization: Bearer <token>',
-      refreshFlow: 'Use /api/auth/refresh com refreshToken para obter novo token.',
-    },
-    conventions: {
-      listDefault: 'Rotas de listagem retornam array por padrao para compatibilidade.',
-      listMetaMode: 'Use includeMeta=true para receber { items, meta }.',
-      pagination: 'Use page e limit (maximo 100) para paginacao.',
-      dateFormat: 'Datas devem usar formato YYYY-MM-DD.',
-    },
-    routes: [
-      {
-        method: 'POST',
-        path: '/api/auth/register',
-        body: { nome: 'string', usuario: 'string', senha: 'string' },
-      },
-      {
-        method: 'POST',
-        path: '/api/auth/login',
-        body: { usuario: 'string', senha: 'string' },
-      },
-      {
-        method: 'POST',
-        path: '/api/auth/refresh',
-        body: { refreshToken: 'string' },
-      },
-      {
-        method: 'POST',
-        path: '/api/auth/logout',
-        body: { refreshToken: 'string' },
-      },
-      {
-        method: 'GET',
-        path: '/api/salas?search=&turno=&page=&limit=&includeMeta=true',
-      },
-      {
-        method: 'POST',
-        path: '/api/salas',
-        body: { nome: 'string', turno: 'string' },
-      },
-      {
-        method: 'GET',
-        path: '/api/salas/:salaId',
-      },
-      {
-        method: 'GET',
-        path: '/api/salas/:salaId/alunos?search=&page=&limit=&includeMeta=true',
-      },
-      {
-        method: 'POST',
-        path: '/api/salas/:salaId/alunos',
-        body: {
-          nome: 'string',
-          responsaveis: [
-            {
-              nome: 'string',
-              email: 'string',
-              telefone: 'string',
-            },
-          ],
-        },
-      },
-      {
-        method: 'GET',
-        path: '/api/responsaveis/alunos?salaId=&search=&page=&limit=&includeMeta=true',
-      },
-      {
-        method: 'GET',
-        path: '/api/responsaveis/aluno/:alunoId',
-      },
-      {
-        method: 'POST',
-        path: '/api/responsaveis',
-        body: {
-          nomeResponsavel: 'string',
-          email: 'string',
-          nomeAluno: 'string',
-          telefone: 'string',
-        },
-      },
-      {
-        method: 'GET',
-        path: '/api/frequencia',
-        query: 'mes=YYYY-MM&inicio=YYYY-MM-DD&fim=YYYY-MM-DD',
-      },
-      {
-        method: 'POST',
-        path: '/api/frequencia',
-        body: {
-          salaId: 'number',
-          data: 'YYYY-MM-DD',
-          registros: [{ alunoId: 'number', status: 'presente|falta' }],
-        },
-      },
-      {
-        method: 'GET',
-        path: '/api/frequencia/sala/:salaId/data/:data',
-      },
-      {
-        method: 'GET',
-        path: '/api/calendario?mes=YYYY-MM',
-      },
-      {
-        method: 'POST',
-        path: '/api/calendario',
-        body: {
-          titulo: 'string',
-          data: 'YYYY-MM-DD',
-          tipo: 'feriado|reuniao|prova|evento|conselho|recesso|aula-especial|observacao',
-          descricao: 'string opcional',
-          cor: '#RRGGBB opcional',
-        },
-      },
-      {
-        method: 'GET',
-        path: '/api/frequencia/sala/:salaId/historico?inicio=YYYY-MM-DD&fim=YYYY-MM-DD',
-      },
-      {
-        method: 'GET',
-        path: '/api/frequencia/aluno/:alunoId/mensal?mes=YYYY-MM',
-      },
-    ],
   });
 });
 
@@ -372,14 +308,21 @@ const healthHandler = async (_req, res) => {
 
 app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
+app.get(`${API_V1_BASE_PATH}/health`, applyApiResponseEnvelope, healthHandler);
 
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/login.html'));
 });
 
-app.use(`${API_BASE_PATH}/*splat`, (_req, res) => {
+app.use(`${API_V1_BASE_PATH}/*splat`, applyApiResponseEnvelope, (_req, res) => {
   res.status(404).json({ message: 'Endpoint nao encontrado.' });
 });
+
+if (ENABLE_LEGACY_API) {
+  app.use(`${API_BASE_PATH}/*splat`, (_req, res) => {
+    res.status(404).json({ message: 'Endpoint nao encontrado.' });
+  });
+}
 
 // handler de erros globais — deve vir após todas as rotas
 // captura exceções não tratadas e garante resposta JSON (evita HTML padrão do Express)
@@ -391,6 +334,17 @@ app.use((err, _req, res, next) => {
     : (err.message || 'Erro na requisicao.');
 
   if (!res.headersSent) {
+    const isV1Api = _req.originalUrl?.startsWith(API_V1_BASE_PATH);
+    if (isV1Api) {
+      res.status(status).json({
+        success: false,
+        data: null,
+        message,
+        errors: err.errors || null,
+      });
+      return;
+    }
+
     res.status(status).json({ message });
   }
 });

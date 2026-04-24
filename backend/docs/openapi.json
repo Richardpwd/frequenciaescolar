@@ -1,0 +1,769 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "API Sistema de Frequencia Avance",
+    "version": "1.1.0",
+    "description": "Documentacao oficial da API versionada em /api/v1 com envelope padrao de resposta."
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "Versao atual"
+    }
+  ],
+  "tags": [
+    { "name": "Health" },
+    { "name": "Auth" },
+    { "name": "Salas" },
+    { "name": "Responsaveis" },
+    { "name": "Frequencia" },
+    { "name": "Calendario" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "required": ["success", "data", "message", "errors"],
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": {
+            "nullable": true,
+            "description": "Payload principal de sucesso."
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": { "type": "string", "nullable": true },
+                "location": { "type": "string", "nullable": true },
+                "message": { "type": "string" },
+                "code": { "type": "string", "nullable": true },
+                "value": { "nullable": true }
+              }
+            }
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["usuario", "senha"],
+        "properties": {
+          "usuario": { "type": "string", "example": "admin" },
+          "senha": { "type": "string", "example": "Senha@12345" }
+        }
+      },
+      "RefreshTokenRequest": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "properties": {
+          "refreshToken": { "type": "string" }
+        }
+      },
+      "UsuarioRegisterRequest": {
+        "type": "object",
+        "required": ["nome", "usuario", "senha"],
+        "properties": {
+          "nome": { "type": "string", "example": "Joao Silva" },
+          "usuario": { "type": "string", "example": "joao.silva" },
+          "senha": { "type": "string", "example": "Senha@12345" }
+        }
+      },
+      "SalaCreateRequest": {
+        "type": "object",
+        "required": ["nome", "turno"],
+        "properties": {
+          "nome": { "type": "string", "example": "Sala A" },
+          "turno": { "type": "string", "example": "Manha" }
+        }
+      },
+      "AlunoCreateRequest": {
+        "type": "object",
+        "required": ["nome"],
+        "properties": {
+          "nome": { "type": "string", "example": "Ana Clara" },
+          "responsaveis": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["nome", "email", "telefone", "dataNascimento"],
+              "properties": {
+                "nome": { "type": "string" },
+                "email": { "type": "string", "format": "email" },
+                "telefone": { "type": "string" },
+                "dataNascimento": { "type": "string", "format": "date" }
+              }
+            }
+          }
+        }
+      },
+      "ResponsavelCreateRequest": {
+        "type": "object",
+        "required": ["nomeResponsavel", "email", "telefone", "dataNascimento"],
+        "properties": {
+          "alunoId": { "type": "integer", "minimum": 1 },
+          "nomeAluno": { "type": "string" },
+          "nomeResponsavel": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "telefone": { "type": "string" },
+          "dataNascimento": { "type": "string", "format": "date" }
+        }
+      },
+      "FrequenciaCreateRequest": {
+        "type": "object",
+        "required": ["salaId", "data", "registros"],
+        "properties": {
+          "salaId": { "type": "integer", "minimum": 1, "example": 1 },
+          "data": { "type": "string", "format": "date", "example": "2026-04-24" },
+          "registros": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["alunoId", "status"],
+              "properties": {
+                "alunoId": { "type": "integer", "minimum": 1 },
+                "status": { "type": "string", "enum": ["presente", "falta"] }
+              }
+            }
+          }
+        }
+      },
+      "CalendarioEventoRequest": {
+        "type": "object",
+        "required": ["titulo", "data", "tipo"],
+        "properties": {
+          "titulo": { "type": "string", "example": "Reuniao com responsaveis" },
+          "data": { "type": "string", "format": "date", "example": "2026-05-10" },
+          "tipo": {
+            "type": "string",
+            "enum": ["feriado", "reuniao", "prova", "evento", "conselho", "recesso", "aula-especial", "observacao"]
+          },
+          "descricao": { "type": "string" },
+          "cor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+        }
+      }
+    },
+    "responses": {
+      "Api200": {
+        "description": "Sucesso",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiResponse" },
+            "examples": {
+              "ok": {
+                "value": {
+                  "success": true,
+                  "data": { "id": 1, "nome": "Joao" },
+                  "message": "Operacao realizada com sucesso.",
+                  "errors": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Erro de validacao",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiResponse" },
+            "examples": {
+              "validation": {
+                "value": {
+                  "success": false,
+                  "data": null,
+                  "message": "Erro de validacao nos dados enviados.",
+                  "errors": [
+                    {
+                      "field": "page",
+                      "location": "query",
+                      "message": "page deve ser um inteiro maior que 0.",
+                      "value": "0"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Nao autenticado",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiResponse" },
+            "examples": {
+              "missing-token": {
+                "value": {
+                  "success": false,
+                  "data": null,
+                  "message": "Token de acesso ausente.",
+                  "errors": [
+                    { "code": "AUTH_TOKEN_MISSING" }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Limite de requisicoes excedido",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiResponse" },
+            "examples": {
+              "too-many-requests": {
+                "value": {
+                  "success": false,
+                  "data": null,
+                  "message": "Muitas tentativas de autenticacao. Tente novamente mais tarde.",
+                  "errors": [
+                    {
+                      "code": "RATE_LIMIT_EXCEEDED",
+                      "retryAfterSeconds": 900,
+                      "path": "/api/v1/auth/login"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check da API",
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" }
+        }
+      }
+    },
+    "/auth": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Descricao resumida dos endpoints de auth",
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Cadastra usuario",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UsuarioRegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Api200" },
+          "409": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Realiza login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Solicita recuperacao de senha",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["usuario"],
+                "properties": {
+                  "usuario": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Renova sessao com refresh token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RefreshTokenRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Encerra sessao",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RefreshTokenRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/salas": {
+      "get": {
+        "tags": ["Salas"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Lista salas com paginacao, filtros e ordenacao",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "turno", "in": "query", "schema": { "type": "string" } },
+          { "name": "includeMeta", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "sortBy", "in": "query", "schema": { "type": "string", "enum": ["id", "nome", "turno", "totalAlunos"] } },
+          { "name": "order", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"] } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      },
+      "post": {
+        "tags": ["Salas"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Cria sala",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SalaCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/salas/{salaId}": {
+      "get": {
+        "tags": ["Salas"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Busca detalhes de uma sala",
+        "parameters": [
+          { "name": "salaId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      },
+      "put": {
+        "tags": ["Salas"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Atualiza dados da sala",
+        "parameters": [
+          { "name": "salaId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SalaCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      },
+      "delete": {
+        "tags": ["Salas"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Exclui sala",
+        "parameters": [
+          { "name": "salaId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": {
+          "204": { "description": "Sem conteudo" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/salas/{salaId}/alunos": {
+      "get": {
+        "tags": ["Salas"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Lista alunos de uma sala",
+        "parameters": [
+          { "name": "salaId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "includeMeta", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "sortBy", "in": "query", "schema": { "type": "string", "enum": ["id", "nome"] } },
+          { "name": "order", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"] } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      },
+      "post": {
+        "tags": ["Salas"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Cadastra aluno na sala",
+        "parameters": [
+          { "name": "salaId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AlunoCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "409": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/responsaveis/alunos": {
+      "get": {
+        "tags": ["Responsaveis"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Lista alunos para vinculo de responsavel",
+        "parameters": [
+          { "name": "salaId", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
+          { "name": "includeMeta", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "sortBy", "in": "query", "schema": { "type": "string", "enum": ["id", "nome"] } },
+          { "name": "order", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"] } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/responsaveis/aluno/{alunoId}": {
+      "get": {
+        "tags": ["Responsaveis"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Lista responsaveis de um aluno",
+        "parameters": [
+          { "name": "alunoId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/responsaveis": {
+      "post": {
+        "tags": ["Responsaveis"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Cadastra responsavel",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResponsavelCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "409": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/frequencia": {
+      "get": {
+        "tags": ["Frequencia"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Lista consolidados de frequencia",
+        "parameters": [
+          { "name": "salaId", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "mes", "in": "query", "schema": { "type": "string", "example": "2026-04" } },
+          { "name": "inicio", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "fim", "in": "query", "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Frequencia"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Registra frequencia",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FrequenciaCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Api200" },
+          "400": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/frequencia/sala/{salaId}/data/{data}": {
+      "get": {
+        "tags": ["Frequencia"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Consulta frequencia por sala e data",
+        "parameters": [
+          { "name": "salaId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "data", "in": "path", "required": true, "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/frequencia/sala/{salaId}/historico": {
+      "get": {
+        "tags": ["Frequencia"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Historico de frequencia por sala",
+        "parameters": [
+          { "name": "salaId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "inicio", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "fim", "in": "query", "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/frequencia/sala/{salaId}/mensal": {
+      "get": {
+        "tags": ["Frequencia"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Resumo mensal de frequencia por sala",
+        "parameters": [
+          { "name": "salaId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "mes", "in": "query", "required": true, "schema": { "type": "string", "example": "2026-04" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/frequencia/aluno/{alunoId}/mensal": {
+      "get": {
+        "tags": ["Frequencia"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Resumo mensal individual de frequencia",
+        "parameters": [
+          { "name": "alunoId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "mes", "in": "query", "required": true, "schema": { "type": "string", "example": "2026-04" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" }
+        }
+      }
+    },
+    "/frequencia/sala/{salaId}/aluno/{alunoId}/mensal": {
+      "get": {
+        "tags": ["Frequencia"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Resumo mensal individual de frequencia com validacao de sala",
+        "parameters": [
+          { "name": "salaId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "alunoId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "mes", "in": "query", "required": true, "schema": { "type": "string", "example": "2026-04" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "400": { "$ref": "#/components/responses/Api200" },
+          "404": { "$ref": "#/components/responses/Api200" }
+        }
+      }
+    },
+    "/calendario": {
+      "get": {
+        "tags": ["Calendario"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Lista eventos do calendario",
+        "parameters": [
+          { "name": "mes", "in": "query", "schema": { "type": "string", "example": "2026-05" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      },
+      "post": {
+        "tags": ["Calendario"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Cria evento do calendario",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CalendarioEventoRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/calendario/{eventoId}": {
+      "get": {
+        "tags": ["Calendario"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Busca evento por ID",
+        "parameters": [
+          { "name": "eventoId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      },
+      "put": {
+        "tags": ["Calendario"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Atualiza evento",
+        "parameters": [
+          { "name": "eventoId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CalendarioEventoRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Api200" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      },
+      "delete": {
+        "tags": ["Calendario"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Remove evento",
+        "parameters": [
+          { "name": "eventoId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": {
+          "204": { "description": "Sem conteudo" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/Api200" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    }
+  }
+}

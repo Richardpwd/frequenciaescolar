@@ -51,7 +51,12 @@ frontend/
 
 ## API
 
-Base URL: http://localhost:3000/api
+Base URL versionada: http://localhost:3000/api/v1
+Base URL legada (compatibilidade): http://localhost:3000/api
+
+Swagger/OpenAPI:
+- http://localhost:3000/api/v1/docs
+- http://localhost:3000/api/docs (compatibilidade)
 
 Rotas protegidas exigem header:
 
@@ -152,6 +157,12 @@ Para desenvolvimento com recarga automatica:
 
 ```bash
 npm run dev:server
+```
+
+Para executar testes de contrato da API v1:
+
+```bash
+npm run test:contract
 ```
 
 5. Abra no navegador:
